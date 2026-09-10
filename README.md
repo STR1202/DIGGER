@@ -17,6 +17,8 @@ prototype/        仕様確認用の 1 ファイル HTML デモ（モックデ�
 
 ## 動かす
 
+> **動作確認のやり方**: [docs/VERIFY.md](docs/VERIFY.md)
+>
 > **先に読む**: 実機で動かす手順は [docs/DEVICE_SETUP.md](docs/DEVICE_SETUP.md)（Android / EAS）、
 > Mac から iOS で確認する手順は [docs/MAC_SETUP.md](docs/MAC_SETUP.md)、
 > Mac 無しで iOS を出す手順は [docs/IOS_WITHOUT_MAC.md](docs/IOS_WITHOUT_MAC.md)。
