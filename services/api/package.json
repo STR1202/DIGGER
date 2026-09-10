@@ -1,0 +1,24 @@
+{
+  "name": "@diggr/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=dist/server.mjs --packages=external"
+  },
+  "dependencies": {
+    "@diggr/core": "*",
+    "fastify": "^5.1.0",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "~5.6.3",
+    "esbuild": "^0.24.0"
+  }
+}

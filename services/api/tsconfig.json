@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true,
+    "paths": { "@diggr/core": ["../../packages/core/src/index.ts"] }
+  },
+  "include": ["src/**/*.ts"]
+}

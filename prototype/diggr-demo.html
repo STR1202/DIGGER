@@ -1,0 +1,2537 @@
+<title>DIGGR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* DIGGR demo — 単一ダークテーマで確定（画面設計書 §4.1）。全色を明示的に塗る。 */
+:root{
+  --bg-base:#0A0A0F; --bg-surface:#14141C; --bg-elevated:#1E1E29;
+  --text-primary:#F5F5F7; --text-secondary:#8E8E9A;
+  --accent:#7C5CFF; --accent-glow:#B79CFF; --locked:#3A3A48;
+  --success:#3DD68C; --error:#FF6B6B;
+  --stage:#07070B; --rail:#0E0E14; --hair:#23232F;
+  --f-display:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --f-body:"Noto Sans JP","Hiragino Sans",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--stage);color:var(--text-primary);font-family:var(--f-body);margin:0;min-height:100vh;-webkit-font-smoothing:antialiased}
+.stage{min-height:100vh;padding:32px 24px 48px;display:flex;gap:36px;justify-content:center;align-items:flex-start;
+  background:radial-gradient(1100px 700px at 22% -10%,rgba(124,92,255,.16),transparent 60%),var(--stage)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent-glow);outline-offset:2px;border-radius:4px}
+
+/* ===== 実機フレーム ===== */
+.device-wrap{display:flex;flex-direction:column;gap:14px;align-items:center}
+.device{position:relative;width:390px;height:844px;border-radius:44px;background:var(--bg-base);
+  border:1px solid var(--hair);box-shadow:0 40px 90px rgba(0,0,0,.65),0 0 0 9px #101017;overflow:hidden;isolation:isolate}
+.device::after{content:"";position:absolute;top:10px;left:50%;transform:translateX(-50%);width:112px;height:26px;
+  border-radius:16px;background:#000;z-index:60;pointer-events:none}
+.device-caption{font-family:var(--f-mono);font-size:11px;color:#5A5A69;letter-spacing:.08em}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg-base)}
+.screen.on{display:flex}
+.safe-top{height:52px;flex:none}
+.safe-bot{height:22px;flex:none}
+
+/* ===== 共通パーツ ===== */
+.h-display{font-family:var(--f-display);font-size:29px;line-height:1.3;font-weight:700;letter-spacing:.01em;text-wrap:balance;margin:0}
+.h-title{font-family:var(--f-display);font-size:20px;font-weight:700;margin:0}
+.t-body{font-size:14.5px;line-height:1.7;margin:0}
+.t-cap{font-size:11.5px;color:var(--text-secondary);line-height:1.65;margin:0}
+.sec-head{font-family:var(--f-display);font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--text-secondary);margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.btn-primary{background:var(--accent);color:#fff;border-radius:12px;min-height:48px;width:100%;font-weight:700;
+  font-family:var(--f-display);font-size:15.5px;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:filter .18s ease,transform .18s ease}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:active{transform:scale(.985)}
+.btn-primary[disabled]{background:#2A2A38;color:#6C6C7B;cursor:not-allowed}
+.btn-ghost{border:1px solid var(--hair);border-radius:12px;min-height:44px;padding:0 14px;font-size:13px;
+  display:flex;align-items:center;justify-content:center;gap:6px;background:var(--bg-surface)}
+.btn-ghost:hover{border-color:#33334A}
+.icon-btn{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--text-secondary)}
+.icon-btn:hover{background:var(--bg-surface);color:var(--text-primary)}
+.pill{border-radius:999px;padding:5px 11px;font-size:11.5px;font-family:var(--f-mono);border:1px solid var(--hair);
+  background:var(--bg-surface);color:var(--text-secondary);white-space:nowrap}
+
+/* ===== SC-01 / SC-02 ===== */
+#sc01{align-items:center;justify-content:center;gap:20px}
+.wordmark{font-family:var(--f-display);font-weight:900;font-size:33px;letter-spacing:.28em;padding-left:.28em}
+.ob-body{flex:1;display:flex;flex-direction:column;padding:0 26px;gap:20px}
+.ob-art{height:230px;border-radius:22px;background:var(--bg-surface);border:1px solid var(--hair);overflow:hidden;flex:none}
+.ob-dots{display:flex;gap:7px;justify-content:center;padding:4px 0}
+.ob-dot{width:7px;height:7px;border-radius:50%;background:#2E2E3D}
+.ob-dot.on{background:var(--accent-glow);width:20px;border-radius:4px}
+.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.svc{border:1px solid var(--hair);background:var(--bg-surface);border-radius:14px;padding:13px 12px;text-align:left;
+  display:flex;flex-direction:column;gap:3px;transition:border-color .16s ease,background .16s ease}
+.svc[aria-pressed="true"]{border-color:var(--accent);background:#1A1730;box-shadow:0 0 0 1px var(--accent) inset}
+.svc b{font-family:var(--f-display);font-size:14.5px}
+
+/* ===== タブ ===== */
+.tabbar{flex:none;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--hair);background:rgba(10,10,15,.94)}
+.tab{padding:9px 0 4px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-secondary);font-size:10.5px}
+.tab.on{color:var(--accent-glow)}
+.tab svg{width:21px;height:21px}
+
+/* ===== SC-03 ===== */
+.scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:18px;padding-bottom:18px}
+.scroll::-webkit-scrollbar{width:0}
+.home-head{display:flex;align-items:center;justify-content:space-between;padding:2px 10px 0 18px}
+.searchfield{margin:0 16px;height:50px;border-radius:14px;background:var(--bg-elevated);border:1px solid var(--hair);
+  display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--text-secondary);font-size:15px;width:calc(100% - 32px)}
+.searchfield:hover{border-color:#33334A}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec>.sec-head{padding:0 18px}
+.row-scroll{display:flex;gap:10px;overflow-x:auto;padding:2px 16px 4px;scrollbar-width:none}
+.row-scroll::-webkit-scrollbar{height:0}
+.recent-card{flex:none;width:106px;height:106px;border-radius:16px;background:var(--bg-surface);border:1px solid var(--hair);
+  padding:11px;display:flex;flex-direction:column;justify-content:space-between;text-align:left}
+.recent-card .nm{font-family:var(--f-display);font-size:13px;font-weight:700;line-height:1.35}
+.seed-card{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;
+  background:var(--bg-surface);border:1px solid var(--hair);text-align:left;transition:border-color .16s ease}
+.seed-card:hover{border-color:#34344B}
+.avatar{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-family:var(--f-display);
+  font-weight:700;font-size:17px;color:#0A0A0F;flex:none}
+.stack{display:flex;flex-direction:column;gap:10px;padding:0 16px}
+.adbanner{margin:0 16px;height:56px;border-radius:12px;border:1px dashed #2F2F40;background:#101017;
+  display:flex;align-items:center;justify-content:center;gap:8px;color:#55555F;font-size:11.5px;font-family:var(--f-mono)}
+
+/* ===== SC-04 ===== */
+#sc04{position:absolute;inset:0;z-index:40;background:var(--bg-base);display:none;flex-direction:column}
+#sc04.on{display:flex}
+.sug-head{display:flex;gap:8px;align-items:center;padding:0 12px 10px}
+.sug-input{flex:1;height:46px;border-radius:13px;background:var(--bg-elevated);border:1px solid var(--accent);
+  color:var(--text-primary);padding:0 14px;font-size:15px;font-family:var(--f-body)}
+.rnd-opt{padding:0 12px 10px}
+.rnd-opt .set-row{border:1px solid var(--hair);border-radius:14px;background:var(--bg-surface)}
+.sug-row{display:flex;align-items:center;gap:12px;padding:11px 16px;width:100%;text-align:left;border-bottom:1px solid #17171F}
+.sug-row:hover{background:var(--bg-surface)}
+.sug-row .sub{font-size:11.5px;color:var(--text-secondary)}
+.sug-row em{font-style:normal;color:var(--accent-glow)}
+.gdot{width:9px;height:9px;border-radius:3px;flex:none}
+
+/* ===== SC-05 ===== */
+#gcanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
+.g-chrome{position:absolute;top:52px;left:10px;right:10px;z-index:12;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.g-chrome>*{pointer-events:auto}
+.g-chrome::before{content:"";position:absolute;left:-10px;right:-10px;top:-52px;bottom:-26px;
+  background:linear-gradient(180deg,#0A0A0F 0%,rgba(10,10,15,.92) 46%,rgba(10,10,15,0) 100%);z-index:-1;pointer-events:none}
+.g-top{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:20px;
+  background:rgba(18,18,26,.94);border:1px solid var(--hair);box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.g-title{flex:1;min-width:0}
+.g-title b{font-family:var(--f-display);font-size:18px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-title span{font-size:11px;color:var(--text-secondary);font-family:var(--f-mono)}
+.g-bottom{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 16px;display:flex;flex-direction:column;gap:10px;z-index:12;
+  background:linear-gradient(180deg,rgba(10,10,15,0) 0%,rgba(10,10,15,.86) 34%,#0A0A0F 100%)}
+.g-actions{display:flex;gap:8px}
+.g-actions .btn-ghost{flex:1;background:rgba(18,18,26,.96)}
+.g-actions .btn-ghost[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-glow)}
+.unlock-cta{width:100%;min-height:46px;border-radius:14px;background:linear-gradient(100deg,#7C5CFF,#B79CFF);
+  color:#0A0A0F;font-family:var(--f-display);font-weight:700;font-size:14.5px;display:flex;align-items:center;
+  justify-content:center;gap:8px;box-shadow:0 10px 30px rgba(124,92,255,.35)}
+/* ===== §4.6 ボタン ===== */
+.btn{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;
+  height:52px;padding:0 24px;border-radius:26px;font-family:var(--f-display);font-size:16px;font-weight:600;
+  letter-spacing:.2px;transition:transform .1s ease-out,filter .1s ease-out,box-shadow .1s ease-out;
+  box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)}
+.btn:active{transform:scale(.96);filter:brightness(.92);box-shadow:none}
+.btn[disabled]{opacity:.35;box-shadow:none;cursor:default}
+.btn.shake{animation:shake .06s 2 linear}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-secondary{background:var(--bg-elevated);color:var(--text-primary);border:1px solid #2A2A38}
+.btn-ghost{background:rgba(20,20,28,.86);color:var(--text-secondary);border:1px solid #2A2A38;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.btn-locked{background:rgba(124,92,255,.12);color:var(--accent-glow);border:1px solid #3B3556}
+.btn-md{height:44px;border-radius:22px;padding:0 20px;font-size:15px}
+.btn-sm{height:36px;border-radius:18px;padding:0 14px;font-size:13px;font-weight:500}
+.btn-step{flex-direction:column;gap:1px;width:100%;overflow:hidden}
+.btn-step .s-main{font-size:16px;font-weight:600}
+.btn-step .s-sub{font-size:12px;font-weight:400;opacity:.72;font-family:var(--f-body)}
+.step-bar{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,.12)}
+.step-bar i{display:block;height:100%;background:var(--accent-glow);transition:width .28s ease-out}
+/* ViewTypeSwitch（FR-29） */
+.vt-switch{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;border-radius:22px;
+  background:rgba(18,18,26,.94);border:1px solid var(--hair);box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.vt-switch button{height:34px;border-radius:19px;font-size:13px;color:var(--text-secondary);display:flex;
+  align-items:center;justify-content:center;gap:5px}
+.vt-switch button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:700}
+#vt-lock{font-size:10px}
+.ck{display:inline-block;margin-left:6px;font-size:10px;color:#0A0A0F;background:#F5F5F7;border-radius:999px;padding:0 5px;line-height:15px;vertical-align:1px}
+.tier-tag{display:inline-block;border-radius:999px;padding:2px 8px;font-size:10.5px;font-family:var(--f-mono);border:1px solid}
+.tier-tag.is-core{color:#F5F5F7;border-color:#4A4A5C}
+.tier-tag.is-rand{color:#9A9AB0;border-color:#2A2A38}
+.lineage{color:var(--accent-glow);font-size:11px;font-family:var(--f-mono)}
+.ctxmenu button.is-off{opacity:.4}
+.zoom-ctl{position:absolute;right:12px;bottom:150px;z-index:12;display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:rgba(20,20,28,.9);border:1px solid var(--hair);border-radius:14px;padding:4px 4px 6px}
+.zoom-ctl button{width:38px;height:38px;border-radius:10px;font-size:19px;line-height:1;color:var(--text-primary)}
+.zoom-ctl button:hover{background:#26263A}
+.zoom-lv{font-size:10px;color:var(--text-secondary)}
+.reward-chip{align-self:flex-end;background:rgba(18,18,26,.96);border:1px solid #3B3556;box-shadow:0 6px 18px rgba(0,0,0,.45);
+  color:var(--accent-glow);padding:5px 10px;border-radius:999px;font-family:var(--f-mono);font-size:11px;display:none}
+.reward-chip.on{display:block}
+.offline-bar{background:#2A2118;color:#FFC857;font-size:11.5px;border:1px solid #5C4A2E;border-radius:14px;
+  padding:7px 12px;display:none;align-items:center;gap:6px;font-family:var(--f-mono)}
+.offline-bar.on{display:flex}
+.empty-state{position:absolute;inset:150px 24px 140px;display:none;flex-direction:column;align-items:center;
+  justify-content:center;gap:14px;text-align:center;z-index:14}
+.empty-state.on{display:flex}
+
+/* ===== シート ===== */
+.sheet-scrim{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .28s ease;z-index:20}
+.sheet-scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg-surface);border-top-left-radius:24px;
+  border-top-right-radius:24px;border-top:1px solid #262636;z-index:22;transform:translateY(100%);
+  transition:transform .28s cubic-bezier(.22,.9,.3,1);display:flex;flex-direction:column;max-height:90%;
+  box-shadow:0 -20px 50px rgba(0,0,0,.5)}
+.sheet.on{transform:translateY(0)}
+.grabber{width:38px;height:4px;border-radius:2px;background:#3A3A48;margin:9px auto 4px;flex:none;cursor:grab}
+.sheet-body{overflow-y:auto;padding:6px 18px 22px;display:flex;flex-direction:column;gap:16px}
+.sheet-body::-webkit-scrollbar{width:0}
+.svc-launch{display:flex;flex-direction:column;gap:8px}
+.svc-sub{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.svc-sub button{border:1px solid var(--hair);background:var(--bg-elevated);border-radius:11px;height:40px;font-size:12px;
+  display:flex;align-items:center;justify-content:center}
+.svc-sub button:hover{border-color:#3A3A55}
+.rel-list{display:flex;flex-direction:column;gap:8px}
+.rel-item{display:flex;align-items:center;gap:10px;font-size:13.5px}
+.rel-swatch{width:24px;flex:none;border-top-width:2px;border-top-style:solid}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border-radius:999px;padding:6px 11px;font-size:12px;border:1px solid var(--hair);background:var(--bg-elevated);
+  display:flex;align-items:center;gap:6px}
+.meta-grid{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:0}
+.meta-grid dt{color:var(--text-secondary);font-size:12px}
+.meta-grid dd{margin:0;font-family:var(--f-mono);font-size:12.5px}
+.sheet-foot{display:flex;gap:10px;justify-content:space-between;border-top:1px solid #22222E;padding-top:12px}
+.linkbtn{color:var(--accent-glow);font-size:13px;display:flex;align-items:center;gap:6px}
+
+/* SC-07 */
+.gtree{display:flex;flex-direction:column}
+.gnode{display:flex;align-items:center;gap:8px;padding:9px 4px;border-bottom:1px solid #1A1A23;width:100%;text-align:left}
+.gnode:hover{background:#191922}
+.gnode .caret{width:20px;color:var(--text-secondary);font-size:11px;flex:none;text-align:center;font-family:var(--f-mono)}
+.gnode .nm{flex:1;font-size:14px}
+.gnode .ct{font-family:var(--f-mono);font-size:12px;color:var(--text-secondary)}
+.gnode[aria-pressed="true"] .nm{color:var(--accent-glow);font-weight:700}
+.d2{padding-left:20px}.d3{padding-left:40px}
+
+/* SC-09 */
+.plan{width:100%;text-align:left;border:1px solid var(--hair);background:var(--bg-elevated);border-radius:16px;
+  padding:13px 14px;display:flex;flex-direction:column;gap:3px;position:relative}
+.plan[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.plan .pr{font-family:var(--f-display);font-size:17px;font-weight:700}
+.plan .badge{position:absolute;right:12px;top:12px;background:var(--accent);color:#fff;font-size:10.5px;
+  padding:3px 8px;border-radius:999px;font-family:var(--f-mono)}
+.legal{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;font-size:11px;color:var(--text-secondary)}
+
+/* SC-16 */
+.range-wrap{display:flex;flex-direction:column;gap:8px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:grid;grid-auto-flow:column;background:var(--bg-elevated);border:1px solid var(--hair);border-radius:12px;padding:3px;gap:3px}
+.seg button{border-radius:9px;height:34px;font-size:13px;color:var(--text-secondary)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:700}
+
+/* SC-11 */
+.list{display:flex;flex-direction:column;gap:8px;padding:0 16px}
+.list-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:var(--bg-surface);
+  border:1px solid var(--hair);text-align:left;width:100%}
+.list-item .grow{flex:1;min-width:0}
+.list-item .nm{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.limit-note{margin:2px 16px 0;padding:12px 14px;border-radius:14px;border:1px dashed #3B3556;background:#15121F;
+  font-size:12px;color:var(--text-secondary);display:flex;flex-direction:column;gap:9px;line-height:1.6}
+
+/* SC-12 */
+.set-group{margin:0 16px;background:var(--bg-surface);border:1px solid var(--hair);border-radius:16px;overflow:hidden}
+.set-row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid #1C1C25;width:100%;text-align:left}
+.set-row:last-child{border-bottom:0}
+.set-row .grow{flex:1}
+.set-row .val{font-size:12.5px;color:var(--text-secondary);font-family:var(--f-mono)}
+.switch{width:44px;height:26px;border-radius:999px;background:#2C2C3A;position:relative;flex:none;transition:background .18s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#8E8E9A;
+  transition:transform .18s ease,background .18s}
+.switch[aria-pressed="true"]{background:#38295E}
+.switch[aria-pressed="true"]::after{transform:translateX(18px);background:var(--accent-glow)}
+.credits{font-family:var(--f-mono);font-size:11.5px;line-height:1.95;color:var(--text-secondary);white-space:pre-line}
+
+/* モーダル・トースト・コンテキスト */
+.modal-scrim{position:absolute;inset:0;background:rgba(0,0,0,.74);display:none;align-items:center;justify-content:center;padding:26px;z-index:50}
+.modal-scrim.on{display:flex}
+.modal{background:var(--bg-elevated);border:1px solid #2A2A3A;border-radius:22px;padding:20px;width:100%;
+  display:flex;flex-direction:column;gap:14px;max-height:88%;overflow-y:auto}
+.toast{position:absolute;left:16px;right:16px;bottom:92px;background:#16241D;border:1px solid #2E5C45;color:var(--success);
+  border-radius:12px;padding:11px 14px;font-size:12.5px;z-index:55;opacity:0;transform:translateY(8px);
+  transition:opacity .22s ease,transform .22s ease;pointer-events:none;display:flex;gap:8px;align-items:center}
+.toast.on{opacity:1;transform:translateY(0)}
+.toast.warn{background:#2A2118;border-color:#5C4A2E;color:#FFC857}
+.ctxmenu{position:absolute;z-index:45;background:var(--bg-elevated);border:1px solid #2E2E3E;border-radius:14px;
+  padding:5px;display:none;flex-direction:column;min-width:180px;box-shadow:0 18px 40px rgba(0,0,0,.6)}
+.ctxmenu.on{display:flex}
+.ctxmenu button{padding:9px 12px;border-radius:10px;font-size:13.5px;text-align:left}
+.ctxmenu button:hover{background:#26263A}
+
+/* ===== 右レール ===== */
+.rail{width:332px;flex:none;display:flex;flex-direction:column;gap:16px;position:sticky;top:32px}
+.rail h1{font-family:var(--f-display);font-size:22px;margin:0}
+.rail .lede{font-size:12.5px;line-height:1.8;color:#9A9AA8;margin:0}
+.card{background:var(--rail);border:1px solid #191922;border-radius:16px;padding:15px}
+.card h2{font-family:var(--f-display);font-size:11px;letter-spacing:.16em;color:#6C6C7B;margin:0 0 11px}
+.sc-now{display:flex;flex-direction:column;gap:3px}
+.sc-now .id{font-family:var(--f-mono);font-size:12px;color:var(--accent-glow)}
+.sc-now .nm{font-size:15px;font-family:var(--f-display);font-weight:700}
+.sc-now .fr{font-family:var(--f-mono);font-size:11px;color:#6C6C7B;line-height:1.6}
+.rail-rows{display:flex;flex-direction:column;gap:10px}
+.rail-row{display:flex;align-items:center;gap:10px;font-size:12.5px;color:#9A9AA8}
+.rail-row .grow{flex:1}
+.rail-row .switch{width:40px;height:23px}
+.rail-row .switch::after{width:17px;height:17px}
+.rail-row .switch[aria-pressed="true"]::after{transform:translateX(17px)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;font-size:12px;color:#8B8B99;align-items:center}
+.keys code{font-family:var(--f-mono);font-size:11px;background:#16161E;border:1px solid #23232F;border-radius:5px;
+  padding:2px 6px;color:#B4B4C4;white-space:nowrap}
+.rail-foot{font-size:11px;color:#55555F;line-height:1.75}
+@media (max-width:900px){
+  .stage{flex-direction:column;align-items:center;padding:20px 14px 40px}
+  .rail{width:100%;max-width:390px;position:static}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms !important}}
+</style>
+
+<div class="stage">
+<div class="device-wrap">
+  <div class="device" id="device">
+
+    <!-- SC-01 スプラッシュ -->
+    <section class="screen on" id="sc01">
+      <svg width="86" height="86" viewBox="0 0 86 86" aria-hidden="true">
+        <circle cx="43" cy="43" r="9" fill="#7C5CFF"/>
+        <circle cx="43" cy="43" r="20" fill="none" stroke="#3A3A48" stroke-width="1"/>
+        <circle cx="43" cy="43" r="32" fill="none" stroke="#26263A" stroke-width="1"/>
+        <circle cx="63" cy="43" r="4" fill="#B79CFF"/><circle cx="30" cy="26" r="3.4" fill="#4FD1FF"/>
+        <circle cx="27" cy="57" r="3" fill="#FF7A6E"/><circle cx="55" cy="68" r="2.6" fill="#7BE3B0"/>
+        <circle cx="75" cy="30" r="2.2" fill="#3A3A48"/><circle cx="12" cy="45" r="2.2" fill="#3A3A48"/>
+      </svg>
+      <div class="wordmark">DIGGR</div>
+      <p class="t-cap" style="font-family:var(--f-mono)">匿名IDを発行しています…</p>
+    </section>
+
+    <!-- SC-02 オンボーディング -->
+    <section class="screen" id="sc02">
+      <div class="safe-top"></div>
+      <div class="ob-body">
+        <div class="ob-art"><canvas id="ob-canvas" width="676" height="460" style="width:100%;height:100%"></canvas></div>
+        <div id="ob-copy" style="display:flex;flex-direction:column;gap:10px"></div>
+        <div style="flex:1"></div>
+        <div class="ob-dots" id="ob-dots"></div>
+        <button class="btn-primary" id="ob-next">次へ</button>
+        <button class="btn-ghost" id="ob-skip" style="border:0;background:none;min-height:36px;color:var(--text-secondary)">スキップ</button>
+      </div>
+      <div class="safe-bot"></div>
+    </section>
+
+    <!-- タブ配下（SC-03 / SC-11 / SC-12） -->
+    <section class="screen" id="main">
+      <div class="safe-top"></div>
+
+      <div class="scroll" id="view-home">
+        <div class="home-head">
+          <div class="wordmark" style="font-size:20px;letter-spacing:.24em">DIGGR</div>
+          <button class="icon-btn" id="btn-settings" aria-label="設定">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1.7a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 3.4 7.5a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1A1.6 1.6 0 0 0 8.8 1.7V1.6a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5h.1a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1h.1a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.4 1z" transform="translate(1.2 1.2) scale(.92)"/></svg>
+          </button>
+        </div>
+        <button class="searchfield" id="btn-search">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          アーティストを検索
+        </button>
+        <div class="sec" id="sec-recent">
+          <h2 class="sec-head">最近のディグ</h2>
+          <div class="row-scroll" id="recent-row"></div>
+        </div>
+        <div class="sec">
+          <h2 class="sec-head">今日のシード</h2>
+          <div class="stack" id="today-seeds"></div>
+        </div>
+        <div class="adbanner" id="home-ad">AdMob banner 320×50 — Free プランのみ</div>
+      </div>
+
+      <div class="scroll" id="view-history" style="display:none">
+        <div class="home-head" style="padding-bottom:6px"><h2 class="h-title">マイディグ</h2></div>
+        <div style="padding:0 16px"><div class="seg" id="hist-seg">
+          <button aria-pressed="true" data-seg="maps">履歴</button><button aria-pressed="false" data-seg="saved">保存</button>
+        </div></div>
+        <div class="list" id="hist-list"></div>
+        <div id="hist-limit"></div>
+      </div>
+
+      <div class="scroll" id="view-settings" style="display:none"></div>
+
+      <nav class="tabbar" id="tabbar">
+        <button class="tab on" data-tab="home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>検索</button>
+        <button class="tab" data-tab="history">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8.5"/></svg>マイディグ</button>
+        <button class="tab" data-tab="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="var(--bg-base)"/><circle cx="15" cy="17" r="2" fill="var(--bg-base)"/></svg>設定</button>
+      </nav>
+
+      <!-- SC-04 検索サジェスト -->
+      <div id="sc04">
+        <div class="safe-top"></div>
+        <div class="sug-head">
+          <input class="sug-input" id="sug-input" placeholder="アーティスト / ジャンル" autocomplete="off" spellcheck="false">
+          <button class="btn-ghost" id="sug-cancel" style="border:0;background:none;padding:0 6px">キャンセル</button>
+        </div>
+        <div class="rnd-opt">
+          <button class="set-row" id="sw-random-row">
+            <span class="grow">ランダム表示を混ぜる
+              <span class="t-cap" style="display:block">OFF は類似度の高い順。ON にすると外側が毎回入れ替わり、🎲 引き直しが使えます</span></span>
+            <span class="switch" id="sw-random" role="switch" aria-pressed="false"></span>
+          </button>
+        </div>
+        <div class="scroll" id="sug-list" style="gap:0;padding-bottom:0"></div>
+      </div>
+    </section>
+
+    <!-- SC-05 / SC-08 グラフ -->
+    <section class="screen" id="sc05">
+      <canvas id="gcanvas"></canvas>
+      <div class="g-chrome">
+      <div class="offline-bar" id="offline-bar">オフラインです — キャッシュ済みグラフを表示中（FR-19）</div>
+      <div class="g-top">
+        <button class="icon-btn" id="g-back" aria-label="戻る">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="m14.5 5-7 7 7 7"/></svg>
+        </button>
+        <div class="g-title"><b id="g-name">Radiohead</b><span id="g-meta">30 / 100 nodes</span></div>
+        <button class="icon-btn" id="g-menu" aria-label="メニュー">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+        </button>
+      </div>
+      <div class="vt-switch" id="vt-switch">
+        <button data-vt="related" aria-pressed="true">関連アーティスト</button>
+        <button data-vt="genre" aria-pressed="false">同じジャンル<span id="vt-lock">🔒</span></button>
+      </div>
+      <div class="reward-chip" id="reward-chip">解放中 29:41</div>
+      </div>
+      <div class="empty-state" id="g-empty">
+        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#3A3A48" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M8 13.5s1.4 1.6 4 1.6 4-1.6 4-1.6M9 9.5h.01M15 9.5h.01"/></svg>
+        <p class="t-body" id="g-empty-msg">いま地図を描けませんでした</p>
+        <button class="btn-ghost" id="g-retry" style="max-width:170px">再試行する</button>
+      </div>
+      <div class="zoom-ctl">
+        <button id="zoom-in" aria-label="拡大">＋</button>
+        <button id="zoom-out" aria-label="縮小">−</button>
+        <span class="zoom-lv mono" id="zoom-lv">100%</span>
+      </div>
+      <div class="g-bottom">
+        <button class="btn btn-primary btn-step" id="btn-step">
+          <span class="s-main">＋ さらに 10 件</span><span class="s-sub">あと 20 件</span>
+          <span class="step-bar"><i id="step-bar"></i></span>
+        </button>
+        <div class="g-actions">
+          <button class="btn btn-ghost btn-sm" id="btn-genre">ジャンル <span class="mono" id="genre-count">18</span></button>
+          <button class="btn btn-ghost btn-sm" id="btn-filter" aria-pressed="false">絞込</button>
+          <button class="btn btn-ghost btn-sm" id="btn-recenter">中心に戻る</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- シート群 -->
+    <div class="sheet-scrim" id="scrim"></div>
+    <div class="sheet" id="sheet"><div class="grabber" id="grabber"></div><div class="sheet-body" id="sheet-body"></div></div>
+
+    <div class="modal-scrim" id="modal-scrim"><div class="modal" id="modal"></div></div>
+    <div class="ctxmenu" id="ctxmenu"></div>
+    <div class="toast" id="toast"></div>
+  </div>
+  <p class="device-caption">390 × 844 pt — DIGGR v2.4 インタラクティブデモ</p>
+</div>
+
+<aside class="rail">
+  <div>
+    <h1>DIGGR プロトタイプ</h1>
+    <p class="lede">設計書 v2.4（基本 / 画面 / 技術）から起こした動くデモ。モックデータ 247 アーティスト・5信号合成の類似度で、<b style="color:#B4B4C4">二層構造（FR-02）・段階表示（FR-28）・引き直し（FR-27）・表示タイプ切替（FR-29）</b>まで動きます。</p>
+    <p class="lede" style="color:#7C7C8C;margin-top:8px">iTunes プレビュー（FR-06 / FR-24 / SC-17）は前回のご指示どおり不採用のまま、技術選定書 §5.3・ADR-13 の縮退構成（<span class="mono" style="font-size:11px">PREVIEW_ENABLED=false</span>）です。聴く導線は外部音楽アプリ連携（FR-23）のみ。</p>
+  </div>
+  <div class="card">
+    <h2>現在の画面</h2>
+    <div class="sc-now"><span class="id" id="rail-id">SC-01</span><span class="nm" id="rail-nm">スプラッシュ</span><span class="fr" id="rail-fr">起動時の初期化と匿名認証</span></div>
+  </div>
+  <div class="card">
+    <h2>デモ操作</h2>
+    <div class="rail-rows">
+      <div class="rail-row"><span class="grow">権利状態（FR-07）</span><span class="mono" id="rail-plan" style="color:#B4B4C4">free</span>
+        <button class="switch" id="sw-plan" role="switch" aria-pressed="false" aria-label="Pro権利を切り替え"></button></div>
+      <div class="rail-row"><span class="grow">オフライン（FR-19）</span>
+        <button class="switch" id="sw-offline" role="switch" aria-pressed="false" aria-label="オフラインを切り替え"></button></div>
+      <div class="rail-row"><span class="grow">API 障害（SC-15）</span>
+        <button class="switch" id="sw-apifail" role="switch" aria-pressed="false" aria-label="API障害を切り替え"></button></div>
+      <div class="rail-row"><span class="grow">動きを減らす</span>
+        <button class="switch" id="sw-motion" role="switch" aria-pressed="false" aria-label="アニメーション軽減"></button></div>
+      <div class="rail-row"><span class="grow">ランダム表示（検索画面で切替）</span><span class="mono" id="rail-random" style="color:#B4B4C4">off</span></div>
+      <div class="rail-row"><span class="grow">画面の表示サイズ</span>
+        <span class="mono" id="rail-scale" style="color:#B4B4C4">100%</span></div>
+      <div class="rail-row" style="gap:6px">
+        <button class="btn-ghost" data-scale="1" style="flex:1;min-height:34px">100%</button>
+        <button class="btn-ghost" data-scale="1.25" style="flex:1;min-height:34px">125%</button>
+        <button class="btn-ghost" data-scale="1.5" style="flex:1;min-height:34px">150%</button>
+      </div>
+      <div class="rail-row" style="padding-top:2px"><button class="btn-ghost" id="btn-reset-demo" style="width:100%">最初からやり直す</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>二層構造の見分け方</h2>
+    <div class="keys">
+      <code style="color:#F5F5F7">内側</code><span>確定枠 — 類似度 0.60 以上。同じシードなら毎回同じ顔ぶれ（最大 20 / Pro 40）</span>
+      <code style="color:#9A9AB0">その外側</code><span>既定は類似度順の続き。検索画面で<b style="color:#B4B4C4">ランダム表示</b>を ON にすると、ここが 41 位以降のプールからの抽選に変わり 🎲 引き直しが解禁されます</span>
+      <code style="color:#3A3A48">その外</code><span>未解放。Free の 30 件の先にある 70 件（タップでペイウォール）</span>
+    </div>
+  </div>
+  <div class="card">
+    <h2>グラフの操作</h2>
+    <div class="keys">
+      <code>＋ さらに 10 件</code><span>FR-28 段階表示。長押しで権利範囲を一気に</span>
+      <code>⋮ → 🎲</code><span>FR-27 引き直し。ランダム表示 ON のときだけ有効（確定枠は動かない）</span>
+      <code>上部の切替</code><span>FR-29 関連 ⇄ 同じジャンル。同じジャンルは<b style="color:#B4B4C4">サブジャンルの島</b>に組み替わり、関連で出てこなかった顔ぶれを優先します（中心アイコンは人のまま）</span>
+      <code>クリック</code><span>ノード選択 → 詳細シート（SC-06）。開いたノードには白いチェックが付きます</span>
+      <code>ダブルクリック</code><span>再ディグ（FR-05・中心を付け替え）</span>
+      <code>長押し / 右クリック</code><span>コンテキストメニュー（FR-11）</span>
+      <code>ドラッグ</code><span>パン</span>
+      <code>ピンチ</code><span>2本指で拡大・縮小（トラックパッド／タッチ）</span>
+      <code>ホイール / ＋ − / 0</code><span>ズーム 50〜400%。拡大すると隠れていた名前が現れる</span>
+      <code>中心に戻る</code><span>検索したアーティストを画面中央へ</span>
+      <code>空白をダブルクリック</code><span>全体が入る倍率に戻す</span>
+    </div>
+  </div>
+  <p class="rail-foot">データは実装デモ用のモックです。実装ではこの層を MusicBrainz / ListenBrainz / Discogs / Wikidata の CC0 ダンプから月次パイプラインで構築します（基本設計書 §6.2）。外部音楽アプリへの遷移はデモでは実際には開かず、遷移記録と既聴マークのみ再現します。課金プランは 2 種（月額 ¥480 / 年額 ¥3,800）。マップは v2.4 の FR-02b どおり乱数シードではなくノード集合ごと保存するので、履歴から開くと当時と同じ地図が戻ります。</p>
+</aside>
+</div>
+
+<script>
+/* ============================================================
+   DIGGR demo — データ層
+   実装では music_v{n} スキーマ（basic §7.1）に相当。ここではモック。
+   ============================================================ */
+const CAT_COLOR = {rock:'#FF7A6E',electronic:'#4FD1FF',hiphop:'#FFC857',jazz:'#7BE3B0',
+  classical:'#C9A7FF',pop:'#FF8AD1',folk:'#9BD86E',experimental:'#8FA0FF'};
+
+const GENRE_DEF = [
+  ['rock','rock','rock',null],['alt-rock','alternative rock','rock','rock'],
+  ['art-rock','art rock','rock','alt-rock'],['shoegaze','shoegaze','rock','alt-rock'],
+  ['dream-pop','dream pop','rock','alt-rock'],['noise-rock','noise rock','rock','alt-rock'],
+  ['math-rock','math rock','rock','alt-rock'],['post-rock','post-rock','rock','rock'],
+  ['post-punk','post-punk','rock','rock'],['psych-rock','psychedelic rock','rock','rock'],
+  ['electronic','electronic','electronic',null],['idm','IDM','electronic','electronic'],
+  ['techno','techno','electronic','electronic'],['detroit-techno','detroit techno','electronic','techno'],
+  ['ambient-techno','ambient techno','electronic','techno'],['ambient','ambient','electronic','electronic'],
+  ['house','house','electronic','electronic'],['uk-garage','UK garage','electronic','electronic'],
+  ['future-garage','future garage','electronic','uk-garage'],['downtempo','downtempo','electronic','electronic'],
+  ['trip-hop','trip hop','electronic','downtempo'],['dub','dub','electronic','electronic'],
+  ['hiphop','hip hop','hiphop',null],['inst-hiphop','instrumental hip hop','hiphop','hiphop'],
+  ['jazz-rap','jazz rap','hiphop','hiphop'],['abstract-hiphop','abstract hip hop','hiphop','inst-hiphop'],
+  ['jazz','jazz','jazz',null],['spiritual-jazz','spiritual jazz','jazz','jazz'],
+  ['modal-jazz','modal jazz','jazz','jazz'],['fusion','jazz fusion','jazz','jazz'],
+  ['uk-jazz','UK jazz','jazz','jazz'],['modern-classical','modern classical','classical',null],
+  ['minimalism','minimalism','classical','modern-classical'],['neoclassical','neoclassical','classical','modern-classical'],
+  ['pop','pop','pop',null],['art-pop','art pop','pop','pop'],['city-pop','city pop','pop','pop'],
+  ['synth-pop','synth-pop','pop','pop'],['jpop','J-pop','pop','pop'],
+  ['soul','soul','pop','pop'],['funk','funk','pop','pop'],['neo-soul','neo soul','pop','soul'],
+  ['rnb','R&B','pop','pop'],['afrobeat','afrobeat','jazz','jazz'],
+  ['folk','folk','folk',null],['acid-folk','acid folk','folk','folk'],
+  ['freak-folk','freak folk','folk','acid-folk'],['ssw','singer-songwriter','folk','folk'],
+  ['experimental','experimental','experimental',null],['avant','avant-garde','experimental','experimental'],
+  ['noise','noise','experimental','experimental'],['drone','drone','experimental','experimental']
+];
+const GENRES = {};
+GENRE_DEF.forEach(([id,name,cat,parent])=>{GENRES[id]={id,name,cat,parent,children:[]}});
+GENRE_DEF.forEach(([id,,,parent])=>{if(parent)GENRES[parent].children.push(id)});
+const genreDepth = id => {let d=1,g=GENRES[id];while(g.parent){d++;g=GENRES[g.parent]}return d};
+
+/* name, country, beginYear, endYear, popularity, scene, genres */
+const A_DEF = [
+['Radiohead','GB',1985,null,.95,'uk-alt',['alt-rock','art-rock','experimental']],
+['Thom Yorke','GB',1996,null,.78,'uk-alt',['electronic','art-rock','idm']],
+['The Smile','GB',2021,null,.60,'uk-alt',['art-rock','post-punk']],
+['Jonny Greenwood','GB',1991,null,.55,'uk-alt',['modern-classical','art-rock']],
+['Atoms for Peace','GB',2009,2013,.46,'uk-alt',['electronic','art-rock']],
+['Blur','GB',1988,null,.80,'uk-alt',['alt-rock','art-pop']],
+['Pulp','GB',1978,null,.64,'uk-alt',['alt-rock','art-pop']],
+['PJ Harvey','GB',1991,null,.66,'uk-alt',['alt-rock','art-rock']],
+['Björk','IS',1977,null,.84,'uk-alt',['art-pop','experimental','electronic']],
+['Talk Talk','GB',1981,1991,.60,'uk-alt',['art-rock','post-rock']],
+['Bark Psychosis','GB',1988,null,.28,'uk-alt',['post-rock','art-rock']],
+['Sigur Rós','IS',1994,null,.70,'uk-alt',['post-rock','ambient']],
+['Mogwai','GB',1995,null,.56,'uk-alt',['post-rock','noise-rock']],
+['Portishead','GB',1991,null,.72,'triphop',['trip-hop','downtempo','art-pop']],
+['Massive Attack','GB',1988,null,.78,'triphop',['trip-hop','downtempo','dub']],
+['Tricky','GB',1991,null,.54,'triphop',['trip-hop','experimental']],
+['My Bloody Valentine','IE',1983,null,.74,'shoegaze',['shoegaze','noise-rock','dream-pop']],
+['Slowdive','GB',1989,null,.70,'shoegaze',['shoegaze','dream-pop']],
+['Ride','GB',1988,null,.58,'shoegaze',['shoegaze','alt-rock']],
+['Cocteau Twins','GB',1979,1997,.66,'shoegaze',['dream-pop','art-pop']],
+['Lush','GB',1987,1998,.46,'shoegaze',['shoegaze','dream-pop']],
+['Chapterhouse','GB',1987,1996,.28,'shoegaze',['shoegaze']],
+['Beach House','US',2004,null,.72,'shoegaze',['dream-pop','art-pop']],
+['Deerhunter','US',2001,null,.54,'shoegaze',['alt-rock','shoegaze','noise-rock']],
+['Grouper','US',2005,null,.44,'shoegaze',['ambient','drone','folk']],
+['Aphex Twin','GB',1988,null,.88,'idm',['idm','ambient-techno','electronic']],
+['Boards of Canada','GB',1986,null,.78,'idm',['idm','downtempo','ambient']],
+['Autechre','GB',1987,null,.64,'idm',['idm','experimental','electronic']],
+['Squarepusher','GB',1994,null,.56,'idm',['idm','electronic','fusion']],
+['Oneohtrix Point Never','US',2007,null,.60,'idm',['experimental','ambient','electronic']],
+['Actress','GB',2004,null,.44,'idm',['techno','experimental','house']],
+['Four Tet','GB',1997,null,.74,'idm',['electronic','downtempo','house']],
+['Burial','GB',2005,null,.72,'idm',['future-garage','uk-garage','ambient']],
+['Jamie xx','GB',2009,null,.70,'idm',['uk-garage','house','electronic']],
+['Caribou','CA',2001,null,.66,'idm',['electronic','house','psych-rock']],
+['Jon Hopkins','GB',2001,null,.62,'idm',['electronic','techno','ambient']],
+['Floating Points','GB',2008,null,.60,'idm',['electronic','house','jazz']],
+['Jeff Mills','US',1989,null,.56,'techno',['detroit-techno','techno']],
+['Juan Atkins','US',1981,null,.52,'techno',['detroit-techno','electronic']],
+['Derrick May','US',1985,null,.50,'techno',['detroit-techno','techno']],
+['Underground Resistance','US',1989,null,.46,'techno',['detroit-techno','techno']],
+['Basic Channel','DE',1993,null,.40,'techno',['techno','dub','ambient-techno']],
+['Brian Eno','GB',1971,null,.80,'minimal',['ambient','art-pop','experimental']],
+['Harold Budd','US',1962,2020,.36,'minimal',['ambient','minimalism']],
+['Steve Reich','US',1965,null,.60,'minimal',['minimalism','modern-classical']],
+['Terry Riley','US',1960,null,.48,'minimal',['minimalism','modern-classical']],
+['Philip Glass','US',1965,null,.68,'minimal',['minimalism','modern-classical']],
+['Max Richter','DE',1996,null,.66,'minimal',['neoclassical','modern-classical']],
+['Nils Frahm','DE',2005,null,.60,'minimal',['neoclassical','ambient']],
+['Hania Rani','PL',2019,null,.48,'minimal',['neoclassical','modern-classical']],
+['Colin Stetson','CA',2007,null,.42,'minimal',['experimental','modern-classical','jazz']],
+['Laurie Anderson','US',1972,null,.42,'minimal',['avant','art-pop','experimental']],
+['Arthur Russell','US',1973,1992,.50,'minimal',['art-pop','house','experimental']],
+['Alice Coltrane','US',1963,2007,.60,'jazz',['spiritual-jazz','modal-jazz','avant']],
+['Pharoah Sanders','US',1964,2022,.62,'jazz',['spiritual-jazz','modal-jazz']],
+['Sun Ra','US',1953,1993,.55,'jazz',['avant','jazz','experimental']],
+['Miles Davis','US',1944,1991,.90,'jazz',['modal-jazz','fusion','jazz']],
+['Herbie Hancock','US',1962,null,.72,'jazz',['fusion','modal-jazz','jazz']],
+['Kamasi Washington','US',2004,null,.62,'jazz',['spiritual-jazz','jazz']],
+['Sons of Kemet','GB',2011,2022,.46,'jazz',['uk-jazz','spiritual-jazz']],
+['Yussef Kamaal','GB',2016,2017,.38,'jazz',['uk-jazz','fusion']],
+['Nala Sinephro','BE',2021,null,.42,'jazz',['uk-jazz','spiritual-jazz','ambient']],
+['Alabaster DePlume','GB',2012,null,.34,'jazz',['uk-jazz','experimental','folk']],
+['J Dilla','US',1992,2006,.74,'beats',['inst-hiphop','jazz-rap','hiphop']],
+['Madlib','US',1993,null,.70,'beats',['inst-hiphop','abstract-hiphop']],
+['MF DOOM','GB',1988,2020,.74,'beats',['abstract-hiphop','hiphop']],
+['Flying Lotus','US',2006,null,.70,'beats',['inst-hiphop','idm','jazz']],
+['Thundercat','US',2011,null,.66,'beats',['fusion','inst-hiphop','jazz']],
+['Erykah Badu','US',1994,null,.72,'beats',['jazz-rap','hiphop','pop']],
+['A Tribe Called Quest','US',1985,2016,.74,'beats',['jazz-rap','hiphop']],
+['Knxwledge','US',2009,null,.40,'beats',['inst-hiphop','abstract-hiphop']],
+['Nujabes','JP',1998,2010,.60,'beats',['inst-hiphop','jazz-rap']],
+['Fishmans','JP',1987,1999,.58,'japan',['dub','jpop','psych-rock']],
+['Cornelius','JP',1989,null,.56,'japan',['art-pop','jpop','experimental']],
+['Yellow Magic Orchestra','JP',1978,1993,.68,'japan',['synth-pop','electronic','jpop']],
+['細野晴臣','JP',1969,null,.56,'japan',['art-pop','city-pop','ambient']],
+['坂本龍一','JP',1975,2023,.78,'japan',['modern-classical','ambient','synth-pop']],
+['Susumu Yokota','JP',1993,2015,.36,'japan',['ambient','techno','downtempo']],
+['Boris','JP',1992,null,.46,'japan',['drone','noise-rock','psych-rock']],
+['toe','JP',2000,null,.42,'japan',['math-rock','post-rock']],
+['tricot','JP',2010,null,.40,'japan',['math-rock','alt-rock']],
+['坂本慎太郎','JP',2011,null,.44,'japan',['psych-rock','city-pop']],
+['Lamp','JP',2000,null,.40,'japan',['city-pop','art-pop']],
+['青葉市子','JP',2010,null,.52,'japan',['folk','ssw','ambient']],
+['椎名林檎','JP',1998,null,.62,'japan',['jpop','art-pop']],
+['NUMBER GIRL','JP',1995,2002,.50,'japan',['alt-rock','noise-rock']],
+['ZAZEN BOYS','JP',2003,null,.42,'japan',['math-rock','post-punk']],
+['MONO','JP',1999,null,.40,'japan',['post-rock','drone']],
+['Nick Drake','GB',1967,1974,.66,'folk',['folk','ssw','acid-folk']],
+['Vashti Bunyan','GB',1965,null,.36,'folk',['acid-folk','folk']],
+['Julia Holter','US',2011,null,.48,'folk',['art-pop','experimental','folk']],
+['Joanna Newsom','US',2002,null,.52,'folk',['freak-folk','acid-folk']],
+['Sufjan Stevens','US',2000,null,.66,'folk',['folk','ssw','art-pop']],
+['Bon Iver','US',2007,null,.74,'folk',['folk','ssw','art-pop']],
+['Arctic Monkeys','GB',2002,null,.80,'uk-alt',['alt-rock','post-punk']],
+['Suede','GB',1989,null,.54,'uk-alt',['alt-rock','art-pop']],
+['The Verve','GB',1990,null,.58,'uk-alt',['alt-rock','psych-rock']],
+['Elbow','GB',1997,null,.50,'uk-alt',['alt-rock','art-rock']],
+['Doves','GB',1998,null,.42,'uk-alt',['alt-rock','post-rock']],
+['Spiritualized','GB',1990,null,.50,'uk-alt',['psych-rock','art-rock']],
+['The Horrors','GB',2005,null,.42,'uk-alt',['post-punk','shoegaze']],
+['Wild Beasts','GB',2002,2018,.42,'uk-alt',['art-pop','alt-rock']],
+['alt-J','GB',2007,null,.58,'uk-alt',['art-pop','alt-rock']],
+['Everything Everything','GB',2007,null,.44,'uk-alt',['art-pop','math-rock']],
+['black midi','GB',2017,null,.42,'uk-alt',['experimental','math-rock']],
+['Black Country, New Road','GB',2018,null,.46,'uk-alt',['art-rock','experimental']],
+['Squid','GB',2016,null,.38,'uk-alt',['post-punk','experimental']],
+['Dry Cleaning','GB',2018,null,.38,'uk-alt',['post-punk']],
+['Galaxie 500','US',1987,1991,.42,'shoegaze',['dream-pop','alt-rock']],
+['Yo La Tengo','US',1984,null,.56,'shoegaze',['alt-rock','dream-pop','noise-rock']],
+['Sonic Youth','US',1981,2011,.68,'shoegaze',['noise-rock','alt-rock','experimental']],
+['Dinosaur Jr.','US',1984,null,.58,'shoegaze',['alt-rock','noise-rock']],
+['The Jesus and Mary Chain','GB',1983,null,.60,'shoegaze',['noise-rock','dream-pop']],
+['Mazzy Star','US',1988,null,.62,'shoegaze',['dream-pop','folk']],
+['Broadcast','GB',1995,2011,.44,'shoegaze',['dream-pop','experimental','psych-rock']],
+['Stereolab','GB',1990,null,.56,'shoegaze',['art-pop','psych-rock','experimental']],
+['Slint','US',1986,null,.42,'shoegaze',['post-rock','noise-rock']],
+['Duster','US',1996,null,.40,'shoegaze',['shoegaze','post-rock']],
+['Alvvays','CA',2011,null,.50,'shoegaze',['dream-pop','alt-rock']],
+['DIIV','US',2011,null,.44,'shoegaze',['shoegaze','dream-pop']],
+['Plaid','GB',1991,null,.40,'idm',['idm','electronic']],
+['µ-Ziq','GB',1993,null,.34,'idm',['idm','electronic']],
+['Clark','GB',2001,null,.40,'idm',['idm','techno']],
+['Bibio','GB',2005,null,.42,'idm',['downtempo','folk','electronic']],
+['Kelly Lee Owens','GB',2015,null,.44,'idm',['techno','dream-pop','electronic']],
+['Bicep','GB',2008,null,.58,'idm',['house','techno','electronic']],
+['Overmono','GB',2016,null,.50,'idm',['uk-garage','techno']],
+['Mount Kimbie','GB',2008,null,.48,'idm',['future-garage','electronic']],
+['James Blake','GB',2009,null,.68,'idm',['future-garage','art-pop']],
+['SBTRKT','GB',2010,null,.44,'idm',['uk-garage','electronic']],
+['Nathan Fake','GB',2003,null,.32,'idm',['techno','ambient']],
+['Apparat','DE',2001,null,.48,'idm',['electronic','ambient','techno']],
+['Moderat','DE',2002,null,.54,'idm',['electronic','techno']],
+['Modeselektor','DE',1999,null,.44,'idm',['electronic','techno']],
+['Christian Löffler','DE',2011,null,.40,'idm',['ambient','house']],
+['Robert Hood','US',1990,null,.40,'techno',['detroit-techno','techno']],
+['Carl Craig','US',1989,null,.44,'techno',['detroit-techno','techno']],
+['Drexciya','US',1992,2002,.38,'techno',['detroit-techno','electronic']],
+['DJ Koze','DE',1994,null,.48,'techno',['house','electronic']],
+['Ricardo Villalobos','CL',1994,null,.40,'techno',['techno','house']],
+['Donato Dozzy','IT',2000,null,.30,'techno',['techno','ambient-techno']],
+['Objekt','DE',2011,null,.34,'techno',['techno','idm']],
+['Peggy Gou','KR',2015,null,.52,'techno',['house','techno']],
+['Sneaker Pimps','GB',1994,null,.36,'triphop',['trip-hop','downtempo']],
+['Morcheeba','GB',1995,null,.44,'triphop',['trip-hop','downtempo']],
+['Thievery Corporation','US',1995,null,.42,'triphop',['downtempo','dub']],
+['Zero 7','GB',1997,null,.42,'triphop',['downtempo','art-pop']],
+['Bonobo','GB',1999,null,.60,'triphop',['downtempo','electronic','house']],
+['Kendrick Lamar','US',2003,null,.90,'beats',['hiphop','jazz-rap']],
+['Tyler, The Creator','US',2007,null,.80,'beats',['hiphop','art-pop']],
+['Earl Sweatshirt','US',2008,null,.54,'beats',['abstract-hiphop','hiphop']],
+['Mac Miller','US',2007,2018,.68,'beats',['hiphop','jazz-rap']],
+['Anderson .Paak','US',2011,null,.66,'beats',['hiphop','jazz-rap','neo-soul']],
+['Little Simz','GB',2010,null,.58,'beats',['hiphop','jazz-rap']],
+['Danny Brown','US',2007,null,.50,'beats',['hiphop','abstract-hiphop']],
+['Aesop Rock','US',1996,null,.44,'beats',['abstract-hiphop','hiphop']],
+['DJ Shadow','US',1991,null,.60,'beats',['inst-hiphop','downtempo']],
+['RJD2','US',1993,null,.40,'beats',['inst-hiphop','downtempo']],
+['Blockhead','US',1998,null,.32,'beats',['inst-hiphop']],
+['Oddisee','US',2001,null,.38,'beats',['hiphop','jazz-rap']],
+["D'Angelo",'US',1991,null,.66,'soul',['neo-soul','soul','funk']],
+['Sade','GB',1982,null,.70,'soul',['soul','jazz','pop']],
+['Curtis Mayfield','US',1958,1999,.58,'soul',['soul','funk']],
+['Marvin Gaye','US',1957,1984,.80,'soul',['soul','funk']],
+['Stevie Wonder','US',1961,null,.85,'soul',['soul','funk','pop']],
+['Al Green','US',1967,null,.58,'soul',['soul']],
+['Solange','US',2001,null,.62,'soul',['neo-soul','art-pop']],
+['Frank Ocean','US',2010,null,.84,'soul',['rnb','art-pop']],
+['SZA','US',2011,null,.78,'soul',['rnb','neo-soul']],
+['Moses Sumney','US',2014,null,.46,'soul',['art-pop','neo-soul','folk']],
+['Yves Tumor','US',2012,null,.44,'soul',['experimental','art-pop']],
+['SAULT','GB',2019,null,.44,'soul',['soul','funk','neo-soul']],
+['Hiatus Kaiyote','AU',2011,null,.50,'soul',['neo-soul','fusion']],
+['Robert Glasper','US',2003,null,.50,'soul',['fusion','neo-soul','jazz']],
+['Jamila Woods','US',2014,null,.38,'soul',['neo-soul','rnb']],
+['Joy Division','GB',1976,1980,.72,'punk',['post-punk']],
+['New Order','GB',1980,null,.72,'punk',['post-punk','synth-pop']],
+['The Cure','GB',1976,null,.78,'punk',['post-punk','dream-pop']],
+['Siouxsie and the Banshees','GB',1976,1996,.54,'punk',['post-punk']],
+['Wire','GB',1976,null,.46,'punk',['post-punk','art-rock']],
+['Public Image Ltd','GB',1978,null,.46,'punk',['post-punk','dub']],
+['Throbbing Gristle','GB',1975,2010,.36,'punk',['experimental','noise']],
+['Coil','GB',1982,2004,.38,'punk',['experimental','ambient']],
+['Swans','US',1982,null,.48,'punk',['noise-rock','experimental','drone']],
+['Nine Inch Nails','US',1988,null,.74,'punk',['noise-rock','electronic']],
+['Fugazi','US',1987,2003,.54,'punk',['post-punk','noise-rock']],
+['Protomartyr','US',2008,null,.38,'punk',['post-punk']],
+['IDLES','GB',2009,null,.55,'punk',['post-punk']],
+['Fontaines D.C.','IE',2017,null,.58,'punk',['post-punk']],
+['Fela Kuti','NG',1958,1997,.62,'global',['afrobeat','funk','jazz']],
+['Tony Allen','NG',1964,2020,.48,'global',['afrobeat','jazz']],
+['Antibalas','US',1998,null,.32,'global',['afrobeat','funk']],
+['Khruangbin','US',2010,null,.62,'global',['psych-rock','funk','dub']],
+['Altın Gün','NL',2016,null,.40,'global',['psych-rock','folk']],
+['Mdou Moctar','NE',2008,null,.44,'global',['psych-rock','folk']],
+['Tinariwen','ML',1979,null,.50,'global',['folk','psych-rock']],
+['Caetano Veloso','BR',1965,null,.60,'global',['art-pop','folk']],
+['Gal Costa','BR',1964,2022,.48,'global',['art-pop','pop']],
+['Arthur Verocai','BR',1972,null,.38,'global',['art-pop','fusion']],
+['Azymuth','BR',1973,null,.40,'global',['fusion','funk']],
+['大貫妙子','JP',1973,null,.48,'japan',['city-pop','art-pop']],
+['山下達郎','JP',1972,null,.66,'japan',['city-pop','pop']],
+['竹内まりや','JP',1978,null,.60,'japan',['city-pop','jpop']],
+['松原みき','JP',1979,2004,.38,'japan',['city-pop']],
+['折坂悠太','JP',2013,null,.44,'japan',['folk','ssw','jpop']],
+['王舟','JP',2013,null,.30,'japan',['folk','city-pop']],
+['カネコアヤノ','JP',2014,null,.50,'japan',['folk','alt-rock']],
+['羊文学','JP',2017,null,.50,'japan',['shoegaze','alt-rock']],
+['中村佳穂','JP',2015,null,.50,'japan',['jpop','art-pop']],
+['電気グルーヴ','JP',1989,null,.55,'japan',['techno','jpop']],
+['石野卓球','JP',1989,null,.40,'japan',['techno','electronic']],
+['相対性理論','JP',2006,null,.44,'japan',['jpop','art-pop']],
+['くるり','JP',1996,null,.52,'japan',['alt-rock','jpop']],
+['スーパーカー','JP',1995,2005,.44,'japan',['alt-rock','shoegaze','electronic']],
+['七尾旅人','JP',1998,null,.36,'japan',['folk','experimental']],
+['Alva Noto','DE',1994,null,.42,'minimal',['experimental','ambient','techno']],
+['Ryoji Ikeda','JP',1995,null,.38,'minimal',['experimental','electronic']],
+['Tim Hecker','CA',2001,null,.46,'minimal',['ambient','drone','experimental']],
+['Stars of the Lid','US',1993,null,.38,'minimal',['ambient','drone']],
+['William Basinski','US',1980,null,.40,'minimal',['ambient','drone']],
+['Loscil','CA',2001,null,.34,'minimal',['ambient','downtempo']],
+['Kali Malone','US',2014,null,.30,'minimal',['drone','minimalism']],
+['Sarah Davachi','CA',2013,null,.30,'minimal',['drone','minimalism','ambient']],
+['Ólafur Arnalds','IS',2007,null,.58,'minimal',['neoclassical','ambient']],
+['Ludovico Einaudi','IT',1988,null,.66,'minimal',['neoclassical','modern-classical']],
+['Jóhann Jóhannsson','IS',2002,2018,.50,'minimal',['neoclassical','modern-classical']],
+['Fleet Foxes','US',2006,null,.66,'folk',['folk','ssw']],
+['Big Thief','US',2015,null,.62,'folk',['folk','alt-rock']],
+['Adrianne Lenker','US',2014,null,.50,'folk',['folk','ssw']],
+['Phoebe Bridgers','US',2014,null,.68,'folk',['ssw','folk']],
+['Weyes Blood','US',2006,null,.54,'folk',['art-pop','folk']],
+['Cate Le Bon','GB',2009,null,.42,'folk',['art-pop','folk']],
+['Aldous Harding','NZ',2014,null,.44,'folk',['folk','art-pop']],
+['Devendra Banhart','US',2002,null,.46,'folk',['freak-folk','acid-folk']],
+['Vetiver','US',2003,null,.32,'folk',['freak-folk','folk']],
+['Karen Dalton','US',1960,1993,.34,'folk',['folk','acid-folk']],
+['Linda Perhacs','US',1970,null,.30,'folk',['acid-folk','freak-folk']],
+['John Coltrane','US',1945,1967,.85,'jazz',['modal-jazz','spiritual-jazz','jazz']],
+['Bill Evans','US',1955,1980,.68,'jazz',['modal-jazz','jazz']],
+['Charles Mingus','US',1943,1979,.66,'jazz',['jazz','avant']],
+['Ornette Coleman','US',1958,2015,.55,'jazz',['avant','jazz']],
+['Yusef Lateef','US',1946,2013,.42,'jazz',['spiritual-jazz','jazz']],
+['Nubya Garcia','GB',2017,null,.44,'jazz',['uk-jazz','spiritual-jazz']],
+['Ezra Collective','GB',2012,null,.48,'jazz',['uk-jazz','afrobeat']],
+['Shabaka','GB',2010,null,.40,'jazz',['uk-jazz','spiritual-jazz']],
+['Makaya McCraven','US',2012,null,.42,'jazz',['jazz','inst-hiphop']],
+['BADBADNOTGOOD','CA',2010,null,.54,'jazz',['jazz','inst-hiphop','fusion']]
+];
+
+const ARTISTS = A_DEF.map(([name,country,begin,end,pop,scene,genres],i)=>({
+  id:'a'+i, name, country, begin, end, pop, scene, genres,
+  cat: GENRES[genres[0]].cat
+}));
+const BY_NAME = {}; ARTISTS.forEach(a=>BY_NAME[a.name]=a);
+
+/* 関係（MusicBrainz / Discogs / Wikidata 相当）: member=同一バンド, collab=共演, influence=影響, label=同レーベル */
+const REL_DEF = [
+['Radiohead','Thom Yorke','member'],['Radiohead','Jonny Greenwood','member'],['Radiohead','The Smile','member'],
+['Thom Yorke','The Smile','member'],['Thom Yorke','Atoms for Peace','member'],['Jonny Greenwood','The Smile','collab'],
+['Thom Yorke','Flying Lotus','collab'],['Thom Yorke','Björk','collab'],['Radiohead','Talk Talk','influence'],
+['Radiohead','My Bloody Valentine','influence'],['Radiohead','Blur','label'],['Blur','Pulp','influence'],
+['Radiohead','Portishead','influence'],['Talk Talk','Bark Psychosis','influence'],['Talk Talk','Mogwai','influence'],
+['Sigur Rós','Mogwai','influence'],['PJ Harvey','Björk','influence'],['Jonny Greenwood','Steve Reich','influence'],
+['Massive Attack','Tricky','member'],['Portishead','Massive Attack','label'],['Portishead','Tricky','influence'],
+['Massive Attack','Burial','influence'],['My Bloody Valentine','Slowdive','influence'],['Slowdive','Ride','label'],
+['My Bloody Valentine','Ride','label'],['Slowdive','Lush','label'],['Cocteau Twins','Slowdive','influence'],
+['Beach House','Cocteau Twins','influence'],['Deerhunter','My Bloody Valentine','influence'],
+['Grouper','Slowdive','influence'],['Chapterhouse','Ride','label'],
+['Aphex Twin','Autechre','label'],['Boards of Canada','Autechre','label'],['Squarepusher','Aphex Twin','label'],
+['Oneohtrix Point Never','Aphex Twin','influence'],['Four Tet','Burial','collab'],['Four Tet','Jamie xx','collab'],
+['Four Tet','Caribou','collab'],['Burial','Jamie xx','influence'],['Actress','Burial','influence'],
+['Jon Hopkins','Brian Eno','collab'],['Floating Points','Pharoah Sanders','collab'],['Aphex Twin','Boards of Canada','label'],
+['Jeff Mills','Underground Resistance','member'],['Juan Atkins','Derrick May','collab'],
+['Derrick May','Underground Resistance','influence'],['Basic Channel','Jeff Mills','influence'],
+['Juan Atkins','Aphex Twin','influence'],['Jeff Mills','Actress','influence'],
+['Brian Eno','Harold Budd','collab'],['Brian Eno','Talk Talk','influence'],['Steve Reich','Terry Riley','influence'],
+['Philip Glass','Steve Reich','influence'],['Max Richter','Philip Glass','influence'],['Nils Frahm','Max Richter','label'],
+['Hania Rani','Nils Frahm','label'],['Colin Stetson','Bon Iver','collab'],['Laurie Anderson','Arthur Russell','influence'],
+['Brian Eno','坂本龍一','collab'],['坂本龍一','Philip Glass','influence'],
+['Alice Coltrane','Pharoah Sanders','collab'],['Alice Coltrane','Sun Ra','influence'],
+['Miles Davis','Herbie Hancock','member'],['Herbie Hancock','Thundercat','influence'],
+['Kamasi Washington','Thundercat','collab'],['Kamasi Washington','Pharoah Sanders','influence'],
+['Flying Lotus','Alice Coltrane','influence'],['Flying Lotus','Thundercat','label'],
+['Sons of Kemet','Yussef Kamaal','influence'],['Nala Sinephro','Sons of Kemet','label'],
+['Alabaster DePlume','Nala Sinephro','influence'],['Sons of Kemet','Kamasi Washington','influence'],
+['J Dilla','Madlib','collab'],['Madlib','MF DOOM','collab'],['J Dilla','A Tribe Called Quest','collab'],
+['J Dilla','Erykah Badu','collab'],['Knxwledge','Madlib','label'],['Nujabes','J Dilla','influence'],
+['Flying Lotus','J Dilla','influence'],['A Tribe Called Quest','Miles Davis','influence'],
+['Yellow Magic Orchestra','坂本龍一','member'],['Yellow Magic Orchestra','細野晴臣','member'],
+['細野晴臣','坂本龍一','collab'],['Lamp','細野晴臣','influence'],['Fishmans','坂本慎太郎','influence'],
+['Cornelius','椎名林檎','collab'],['NUMBER GIRL','ZAZEN BOYS','member'],['tricot','ZAZEN BOYS','influence'],
+['toe','MONO','label'],['Boris','MONO','influence'],['Fishmans','Massive Attack','influence'],
+['青葉市子','Nick Drake','influence'],['Susumu Yokota','Aphex Twin','influence'],['Cornelius','Beach House','influence'],
+['Nick Drake','Vashti Bunyan','label'],['Joanna Newsom','Vashti Bunyan','influence'],
+['Julia Holter','Laurie Anderson','influence'],['Sufjan Stevens','Bon Iver','influence'],['Bon Iver','Nick Drake','influence'],
+['Joy Division','New Order','member'],['The Cure','Siouxsie and the Banshees','collab'],
+['The Cure','Slowdive','influence'],['Joy Division','Protomartyr','influence'],
+['Wire','Fugazi','influence'],['Public Image Ltd','Wire','label'],
+['Throbbing Gristle','Coil','member'],['Coil','Nine Inch Nails','collab'],
+['Swans','Nine Inch Nails','influence'],['Fugazi','IDLES','influence'],
+['IDLES','Fontaines D.C.','label'],['Fontaines D.C.','Dry Cleaning','label'],
+['Squid','black midi','label'],['black midi','Black Country, New Road','label'],
+['Sonic Youth','Dinosaur Jr.','label'],['The Jesus and Mary Chain','My Bloody Valentine','influence'],
+['Sonic Youth','My Bloody Valentine','influence'],['Galaxie 500','Mazzy Star','influence'],
+['Yo La Tengo','Galaxie 500','label'],['Slint','Mogwai','influence'],
+['Duster','DIIV','influence'],['Alvvays','Slowdive','influence'],
+['Broadcast','Stereolab','label'],['Stereolab','Cornelius','collab'],
+['The Horrors','The Jesus and Mary Chain','influence'],['Arctic Monkeys','Suede','influence'],
+['Suede','Blur','label'],['The Verve','Spiritualized','influence'],
+['Doves','Elbow','label'],['alt-J','Wild Beasts','label'],
+['Plaid','Autechre','label'],['µ-Ziq','Aphex Twin','label'],
+['Clark','Autechre','label'],['Bibio','Boards of Canada','influence'],
+['Bicep','Overmono','collab'],['Mount Kimbie','James Blake','collab'],
+['James Blake','Burial','influence'],['SBTRKT','Jamie xx','label'],
+['Apparat','Modeselektor','member'],['Moderat','Apparat','member'],
+['Moderat','Modeselektor','member'],['Nathan Fake','Four Tet','label'],
+['Kelly Lee Owens','Jon Hopkins','label'],['Christian Löffler','Loscil','influence'],
+['Robert Hood','Underground Resistance','member'],['Carl Craig','Derrick May','influence'],
+['Drexciya','Underground Resistance','label'],['DJ Koze','Peggy Gou','label'],
+['Ricardo Villalobos','Basic Channel','influence'],['Objekt','Actress','label'],
+['Donato Dozzy','Basic Channel','influence'],
+['Bonobo','Four Tet','label'],['Zero 7','Morcheeba','influence'],
+['Thievery Corporation','Massive Attack','influence'],['Sneaker Pimps','Portishead','influence'],
+['Kendrick Lamar','Thundercat','collab'],['Kendrick Lamar','Flying Lotus','collab'],
+['Kendrick Lamar','Kamasi Washington','collab'],['Tyler, The Creator','Earl Sweatshirt','member'],
+['Mac Miller','Anderson .Paak','collab'],['Anderson .Paak','Robert Glasper','collab'],
+['Little Simz','Ezra Collective','collab'],['Danny Brown','Aesop Rock','label'],
+['DJ Shadow','RJD2','influence'],['Blockhead','Aesop Rock','collab'],
+['Oddisee','J Dilla','influence'],['Makaya McCraven','Madlib','influence'],
+['BADBADNOTGOOD','Kendrick Lamar','collab'],['BADBADNOTGOOD','Robert Glasper','influence'],
+['Stevie Wonder',"D'Angelo",'influence'],['Marvin Gaye','Frank Ocean','influence'],
+['Curtis Mayfield','Marvin Gaye','influence'],['Al Green','Marvin Gaye','label'],
+["D'Angelo",'Erykah Badu','collab'],['Robert Glasper','Erykah Badu','collab'],
+['Solange','Frank Ocean','collab'],['SZA','Frank Ocean','influence'],
+['Sade','Frank Ocean','influence'],['Moses Sumney','Solange','collab'],
+['Yves Tumor','Moses Sumney','label'],['SAULT','Little Simz','collab'],
+['Hiatus Kaiyote','Robert Glasper','influence'],['Jamila Woods','SZA','influence'],
+['Thundercat',"D'Angelo",'influence'],
+['Fela Kuti','Tony Allen','member'],['Tony Allen','Antibalas','influence'],
+['Antibalas','Ezra Collective','influence'],['Khruangbin','Altın Gün','influence'],
+['Mdou Moctar','Tinariwen','influence'],['Caetano Veloso','Gal Costa','collab'],
+['Arthur Verocai','Azymuth','label'],['Azymuth','Khruangbin','influence'],
+['Caetano Veloso','Devendra Banhart','influence'],
+['山下達郎','大貫妙子','member'],['山下達郎','竹内まりや','collab'],
+['大貫妙子','細野晴臣','collab'],['松原みき','山下達郎','influence'],
+['電気グルーヴ','石野卓球','member'],['電気グルーヴ','Yellow Magic Orchestra','influence'],
+['羊文学','My Bloody Valentine','influence'],['羊文学','NUMBER GIRL','influence'],
+['カネコアヤノ','折坂悠太','collab'],['王舟','Lamp','label'],
+['中村佳穂','折坂悠太','collab'],['七尾旅人','青葉市子','influence'],
+['くるり','NUMBER GIRL','label'],['スーパーカー','くるり','label'],
+['相対性理論','Cornelius','influence'],['坂本龍一','Alva Noto','collab'],
+['Alva Noto','Ryoji Ikeda','label'],['Tim Hecker','William Basinski','influence'],
+['Stars of the Lid','Brian Eno','influence'],['Loscil','Stars of the Lid','label'],
+['Kali Malone','Sarah Davachi','label'],['Sarah Davachi','Terry Riley','influence'],
+['Ólafur Arnalds','Nils Frahm','collab'],['Jóhann Jóhannsson','Max Richter','label'],
+['Ludovico Einaudi','Philip Glass','influence'],
+['Fleet Foxes','Bon Iver','collab'],['Big Thief','Adrianne Lenker','member'],
+['Phoebe Bridgers','Big Thief','influence'],['Weyes Blood','Aldous Harding','label'],
+['Cate Le Bon','Aldous Harding','collab'],['Devendra Banhart','Vetiver','collab'],
+['Karen Dalton','Linda Perhacs','influence'],['Linda Perhacs','Vashti Bunyan','influence'],
+['Adrianne Lenker','Nick Drake','influence'],
+['John Coltrane','Alice Coltrane','member'],['Miles Davis','John Coltrane','member'],
+['Miles Davis','Bill Evans','member'],['Charles Mingus','Ornette Coleman','influence'],
+['John Coltrane','Pharoah Sanders','member'],['Yusef Lateef','Alice Coltrane','influence'],
+['Nubya Garcia','Sons of Kemet','collab'],['Shabaka','Sons of Kemet','member'],
+['Ezra Collective','Yussef Kamaal','influence'],['Nubya Garcia','Ezra Collective','label']
+];
+const REL = {};
+const relKey=(a,b)=>a<b?a+'|'+b:b+'|'+a;
+REL_DEF.forEach(([an,bn,t])=>{
+  const a=BY_NAME[an],b=BY_NAME[bn]; if(!a||!b)return;
+  const k=relKey(a.id,b.id); (REL[k]=REL[k]||[]).push(t);
+});
+
+/* シーン親和（ListenBrainz の共聴シグナル代理） */
+const SCENE_AFF = {
+  'uk-alt|shoegaze':.55,'uk-alt|triphop':.50,'uk-alt|minimal':.32,'uk-alt|idm':.30,'uk-alt|japan':.24,'uk-alt|folk':.30,
+  'shoegaze|minimal':.38,'shoegaze|japan':.30,'shoegaze|idm':.22,'shoegaze|folk':.26,
+  'idm|techno':.60,'idm|minimal':.46,'idm|triphop':.45,'idm|beats':.40,'idm|japan':.30,
+  'techno|minimal':.32,'techno|triphop':.28,'techno|japan':.20,
+  'triphop|beats':.40,'triphop|japan':.20,'triphop|minimal':.26,
+  'beats|jazz':.50,'beats|japan':.26,'beats|minimal':.22,
+  'jazz|minimal':.26,'jazz|japan':.16,'jazz|folk':.16,
+  'minimal|japan':.35,'minimal|folk':.30,'japan|folk':.25,
+  'beats|soul':.55,'jazz|soul':.42,'soul|triphop':.30,'japan|soul':.20,'folk|soul':.16,'minimal|soul':.12,
+  'punk|uk-alt':.48,'punk|shoegaze':.42,'japan|punk':.30,'minimal|punk':.20,'punk|techno':.18,'idm|punk':.16,
+  'punk|soul':.10,'global|jazz':.32,'global|minimal':.24,'folk|global':.26,'beats|global':.26,
+  'global|japan':.16,'global|techno':.18,'global|idm':.18,'global|soul':.30,'global|uk-alt':.14,
+  'global|punk':.12,'global|shoegaze':.12,'global|triphop':.18
+};
+const sceneAff=(x,y)=>x===y?1:(SCENE_AFF[x<y?x+'|'+y:y+'|'+x]??.10);
+function hash2(a,b){let s=(a<b?a+b:b+a),h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return ((h>>>0)%1000)/1000}
+function genreVec(a){const v={};a.genres.forEach((g,i)=>{const w=1-i*0.18;v[g]=(v[g]||0)+w;let p=GENRES[g].parent;let k=.5;while(p){v[p]=(v[p]||0)+w*k;p=GENRES[p].parent;k*=.6}});return v}
+const VEC={}; ARTISTS.forEach(a=>VEC[a.id]=genreVec(a));
+function cosine(u,v){let d=0,nu=0,nv=0;for(const k in u){nu+=u[k]*u[k];if(v[k])d+=u[k]*v[k]}for(const k in v)nv+=v[k]*v[k];return d/(Math.sqrt(nu*nv)||1)}
+function eraOverlap(a,b){const ae=a.end||2026,be=b.end||2026;const o=Math.min(ae,be)-Math.max(a.begin,b.begin);return o<=0?0:Math.min(1,o/25)}
+
+/* 5信号の重み付き合成（基本設計書 FR-02） */
+const WEIGHTS={listen:.50,genre:.20,collab:.15,influence:.10,label:.05};
+function similarity(a,b){
+  const types=REL[relKey(a.id,b.id)]||[];
+  const listen = sceneAff(a.scene,b.scene)*(0.62+0.38*hash2(a.id,b.id))*(0.55+0.45*Math.min(a.pop,b.pop)+0.0)
+                 + (types.length?0.18:0);
+  const genre = cosine(VEC[a.id],VEC[b.id]);
+  const collab = types.includes('member')?1:types.includes('collab')?.82:0;
+  const influence = types.includes('influence')?1:0;
+  const label = types.includes('label')?1:eraOverlap(a,b)*.5;
+  const raw = WEIGHTS.listen*Math.min(1,listen)+WEIGHTS.genre*genre+WEIGHTS.collab*collab
+            + WEIGHTS.influence*influence+WEIGHTS.label*label;
+  const relationTypes=[];
+  if(listen>=.34) relationTypes.push('listen');
+  types.forEach(t=>{if(!relationTypes.includes(t))relationTypes.push(t)});
+  if(!relationTypes.length) relationTypes.push('listen');
+  return {score:Math.min(.99,raw*1.34), relationTypes};
+}
+const REL_STYLE = {
+  listen:{label:'共聴',color:'#5C5C74',ui:'#7FD1FF',desc:'同じリスナーによく聴かれている'},
+  collab:{label:'共演',color:'#B79CFF',desc:'実際に一緒に演奏している'},
+  member:{label:'メンバー',color:'#B79CFF',desc:'同じバンドに在籍している'},
+  influence:{label:'影響',color:'#FFC857',desc:'影響を与えた／受けた'},
+  label:{label:'同レーベル',color:'#7BE3B0',desc:'同じレーベル／同じ年代に活動'}
+};
+const SERVICES = {
+  spotify:{name:'Spotify', short:'Spotify', url:n=>'https://open.spotify.com/search/'+encodeURIComponent(n)},
+  apple:{name:'Apple Music', short:'Apple', url:n=>'https://music.apple.com/search?term='+encodeURIComponent(n)},
+  ytmusic:{name:'YouTube Music', short:'YT Music', url:n=>'https://music.youtube.com/search?q='+encodeURIComponent(n)},
+  itunes:{name:'iTunes Store', short:'iTunes', url:n=>'itmss://itunes.apple.com/search?media=music&term='+encodeURIComponent(n)}
+};
+
+/* ============ マップ生成（FR-02 二層構造 / FR-27 引き直し / FR-29 表示タイプ） ============ */
+const CORE_THRESHOLD=0.60, SCHEMA_VERSION='music_v20260901', MAX_NODES=100;
+function relatedFor(seed){                     // 実装では上位 650 位まで
+  const out=[];
+  for(const b of ARTISTS){ if(b.id===seed.id) continue;
+    const {score,relationTypes}=similarity(seed,b);
+    out.push({artist:b,score,relationTypes});
+  }
+  out.sort((x,y)=>y.score-x.score);
+  return out.map((n,i)=>({...n,rank:i+1}));
+}
+function genreMembers(gid){                    // popularity 降順（Redis genre: 相当）
+  return ARTISTS.filter(a=>VEC[a.id][gid]).sort((x,y)=>y.pop-x.pop);
+}
+const mainGenreOf=a=>a.genres[0];              // artist_genres.weight 最大
+/* そのアーティストが gid の中でいちばん具体的にどこに属すか（島の割り当てに使う） */
+function clusterOf(a,gid){
+  let best=null,bd=-1;
+  for(const g of a.genres){
+    let cur=g,d=0,ok=false;
+    while(cur){ if(cur===gid){ok=true;break} cur=GENRES[cur].parent; d++; }
+    if(ok&&d>bd){bd=d;best=g}
+  }
+  return best||gid;
+}
+/* 決定的 PRNG（ADR-19: xoshiro 系）。Math.random() はシードを固定できないので使わない。 */
+function rngFrom(seed){
+  let s0=(seed>>>0)||1, s1=(Math.imul(seed,2654435761)>>>0)||2,
+      s2=((seed^0x9E3779B9)>>>0)||3, s3=(((seed<<7)^0x85EBCA6B)>>>0)||4;
+  const rotl=(x,k)=>((x<<k)|(x>>>(32-k)))>>>0;
+  return ()=>{ const r=Math.imul(rotl(Math.imul(s1,5)>>>0,7),9)>>>0, t=(s1<<9)>>>0;
+    s2^=s0; s3^=s1; s1^=s2; s0^=s3; s2^=t; s3=rotl(s3,11); return r/4294967296; };
+}
+function partialShuffle(arr,k,rnd){             // 部分 Fisher-Yates: O(slots)
+  const a=arr.slice(), n=Math.min(k,a.length);
+  for(let i=0;i<n;i++){const j=i+Math.floor(rnd()*(a.length-i));const t=a[i];a[i]=a[j];a[j]=t}
+  return a.slice(0,n);
+}
+const mapKey=(st,sk,vt,gid)=>st+'|'+sk+'|'+vt+'|'+(gid||'-');
+let mapSeq=0;
+const newMapId=()=>'01J'+Date.now().toString(36).toUpperCase()+String(++mapSeq).padStart(3,'0');
+function entitlement(){
+  const pro=isPro()||Date.now()<S.rewardUntil;
+  return pro?{nodeLimit:100,coreCap:40,pro:true}
+            :{nodeLimit:30,coreCap:20,pro:false};
+}
+/* 1 リクエスト = 1 マップ。確定枠は決定的、ランダム枠は乱数シードで完全に再現できる（FR-02b）。 */
+function generateMap({seedType,seedKey,viewType='related',genreId=null,randomSeed=null,parentMapId=null,randomOn=null}){
+  const ent=entitlement();
+  const rnd = randomOn==null ? S.randomOn : randomOn;   // 検索時に選ぶオプション（既定は OFF）
+  const seed = seedType==='genre' ? GENRES[seedKey] : ARTISTS.find(a=>a.id===seedKey);
+  const rs = randomSeed!=null ? randomSeed : (Math.floor(Math.random()*2147483647)>>>0);
+  let nodes=[], coreCount=0, canReroll=false, poolSize=0, gid=genreId, available=0;
+  if(seedType==='genre') viewType='genre';             // ジャンルから掘るモード（SC-08）
+  if(viewType==='genre'){
+    gid = gid || (seedType==='genre'?seedKey:mainGenreOf(seed));
+    const members=genreMembers(gid).filter(a=>a.id!==seed.id);
+    poolSize=members.length; available=members.length;
+    /* 関連アーティストの地図と重ならないようにする。
+       類似度で出てくる顔ぶれは後回しにし、「同じ音のはずなのに出てこなかった人」を先に出す。 */
+    const known=new Set(seedType==='genre'?[]:relatedFor(seed).slice(0,ent.nodeLimit).map(x=>x.artist.id));
+    const fresh=members.filter(a=>!known.has(a.id)), seen=members.filter(a=>known.has(a.id));
+    const pick=(arr,k)=>rnd?partialShuffle(arr,k,rngFrom(rs+arr.length)):arr.slice(0,k);
+    const picked=[...pick(fresh,ent.nodeLimit),...pick(seen,Math.max(0,ent.nodeLimit-fresh.length))];
+    // サブジャンルごとの島にまとめ、島をまたいで順に出す（段階表示で全体の広がりが先に見える）
+    const buckets=new Map();
+    picked.forEach(a=>{const c=clusterOf(a,gid); if(!buckets.has(c))buckets.set(c,[]); buckets.get(c).push(a)});
+    const order=[...buckets.values()].sort((x,y)=>y.length-x.length);
+    const woven=[];
+    for(let i=0;order.some(b=>b[i]);i++) for(const b of order) if(b[i]) woven.push(b[i]);
+    nodes = woven.map((a,i)=>({id:a.id,a,tier:'random',rank:i+1,relationTypes:[],
+      cluster:clusterOf(a,gid), fresh:!known.has(a.id)}));
+    canReroll = rnd && members.length>ent.nodeLimit;
+  }else{
+    const items=relatedFor(seed);
+    available=items.length;
+    const coreAll=items.filter(x=>x.score>=CORE_THRESHOLD);
+    const core=coreAll.slice(0,ent.coreCap);
+    const pool=[...coreAll.slice(core.length), ...items.filter(x=>x.score<CORE_THRESHOLD)];
+    poolSize=pool.length; coreCount=core.length;
+    const slots=Math.max(0,ent.nodeLimit-core.length);
+    // ランダム表示 ON ならプールから引く。OFF なら確定枠の続きを類似度順にそのまま並べる。
+    const rest = rnd ? partialShuffle(pool,slots,rngFrom(rs)) : pool.slice(0,slots);
+    nodes=[...core.map((x,i)=>({id:x.artist.id,a:x.artist,tier:'core',score:x.score,rank:i+1,relationTypes:x.relationTypes})),
+           ...rest.map((x,i)=>({id:x.artist.id,a:x.artist,tier:'random',score:x.score,rank:core.length+i+1,relationTypes:x.relationTypes}))];
+    canReroll = rnd && pool.length>slots;
+  }
+  return {
+    id:newMapId(), seedType, seedKey, seedName:seed.name, seed, viewType, genreId:gid,
+    nodes, coreCount, canReroll, poolSize, available, randomOn:rnd,
+    ghosts:Math.max(0,Math.min(MAX_NODES-nodes.length, available-nodes.length)),
+    randomSeed:rnd?rs:0, schemaVersion:SCHEMA_VERSION,
+    parentMapId, createdAt:Date.now(), nodeLimit:ent.nodeLimit,
+    revealed:Math.min(10,nodes.length)
+  };
+}
+
+/* ============================================================
+   状態・画面遷移
+   ============================================================ */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const S={
+  screen:'sc01', tab:'home', plan:'free', rewardUntil:0, service:null, obPage:0,
+  randomOn:false, offline:false, apiFail:false, reduceMotion:false, labelDense:true, relColors:true, confirmLaunch:false,
+  listened:new Set(), checked:new Set(), bookmarks:[], maps:[], rewardUses:0,
+  graph:null, mapCache:new Map(), view:{z:1,x:0,y:0}, selected:null, sheetType:null,
+  highlight:new Set(), expanded:new Set(['rock','electronic']),
+  filters:{from:1940,to:2026,types:new Set(['listen','collab','member','influence','label']),country:'all',tier:'all',on:false},
+  histSeg:'maps'
+};
+const RAIL={
+  sc01:['SC-01','スプラッシュ','起動時の初期化と匿名認証（FR-14）'],
+  sc02:['SC-02','オンボーディング','体験説明と普段使う音楽アプリの選択'],
+  home:['SC-03','ホーム（検索）','FR-01 検索 / FR-15 履歴 / FR-13 バナー広告'],
+  sug:['SC-04','検索サジェスト','FR-01 アーティスト・ジャンル横断の候補'],
+  graph:['SC-05','グラフ（中核）','FR-03 描画 / FR-04 操作 / FR-07 件数制御'],
+  genreGraph:['SC-08','ジャンルグラフ','FR-09 ジャンル起点ディグ'],
+  artist:['SC-06','アーティスト詳細','FR-06 外部音楽アプリ連携 / FR-05 再ディグ'],
+  genre:['SC-07','ジャンルパネル','FR-08 一覧 / FR-10 サブジャンル階層'],
+  filter:['SC-16','フィルタパネル','FR-21 関係タイプ / FR-22 年代（Pro限定）'],
+  paywall:['SC-09','ペイウォール','FR-12 課金・購入復元'],
+  reward:['SC-10','リワード解放確認','§9.3 広告視聴で30分解放'],
+  history:['SC-11','マイディグ','FR-15 履歴 / FR-16 ブックマーク'],
+  settings:['SC-12','設定','FR-20 / データクレジット / アカウント削除'],
+  link:['SC-13','アカウント連携','FR-14 Apple / Google サインイン'],
+  share:['SC-14','共有プレビュー','FR-17 シェア画像の生成'],
+  error:['SC-15','エラー / オフライン','FR-19 キャッシュ閲覧・再試行']
+};
+function rail(k){const r=RAIL[k];if(!r)return;$('#rail-id').textContent=r[0];$('#rail-nm').textContent=r[1];$('#rail-fr').textContent=r[2];}
+function show(id){$$('.screen').forEach(s=>s.classList.toggle('on',s.id===id));S.screen=id;}
+function isPro(){return S.plan!=='free'}
+function toast(msg,warn){const t=$('#toast');t.textContent=msg;t.classList.toggle('warn',!!warn);t.classList.add('on');
+  clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2400);}
+
+/* ============================================================
+   グラフ描画エンジン（実装では Skia + d3-force に相当）
+   ============================================================ */
+const cv=$('#gcanvas'); const ctx=cv.getContext('2d'); let cw=390,ch=844,cx=195,cy=396;
+function fitCanvas(){const r=cv.getBoundingClientRect();const dpr=Math.min(2,window.devicePixelRatio||1);
+  cw=r.width;ch=r.height;cx=cw/2;cy=ch*0.50;cv.width=cw*dpr;cv.height=ch*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
+const LABEL_FONT='500 11px "Noto Sans JP","Hiragino Sans",system-ui,sans-serif';
+const SEED_FONT='700 13.5px "Zen Kaku Gothic New","Hiragino Sans",system-ui,sans-serif';
+const DPR=()=>Math.min(2,window.devicePixelRatio||1);
+const labelText=n=>n.length>15?n.slice(0,14)+'…':n;
+function measureLabel(t){ctx.save();ctx.font=LABEL_FONT;const w=ctx.measureText(t).width;ctx.restore();return w}
+const R0=150;
+/* 全ノードを 1 つの力学レイアウトに載せる（外周リング表現は使わない）。
+   確定枠は類似度で内側へ、ランダム枠はその外側へゆるく散らす。 */
+function layoutMap(map){
+  const nodes=map.nodes;
+  nodes.forEach(n=>{n.label=labelText(n.a.name);n.lw=measureLabel(n.label)});
+  const base=hash2(map.seedKey,map.seedKey)*6.283;
+  map.clusters=[];
+  if(map.viewType==='genre'){ layoutIslands(map,base); return; }
+  const core=nodes.filter(n=>n.tier==='core');
+  const rands=nodes.filter(n=>n.tier==='random');
+  const ri=new Map(rands.map((n,i)=>[n,i]));
+  const smax=Math.max(...core.map(n=>n.score),0.01), smin=Math.min(...core.map(n=>n.score),0);
+  const inner=core.length?R0*0.74:60;
+  nodes.forEach((n,i)=>{
+    if(n.tier==='core'){
+      const t=(n.score-smin)/((smax-smin)||1);
+      n.r0=62+(1-t)*(inner-62); n.rad=7+9*t;
+    }else{
+      const k=ri.get(n)/Math.max(1,rands.length-1);
+      n.r0=inner*0.88+k*R0*0.74+(hash2('rr'+i,'x')-0.5)*20;
+      n.rad=6.4-1.6*k;
+    }
+    const ang=base+i*2.39996;
+    n.x=Math.cos(ang)*n.r0; n.y=Math.sin(ang)*n.r0;
+  });
+  const iters=nodes.length>60?150:240;
+  for(let k=0;k<iters;k++){
+    for(const n of nodes){const d=Math.hypot(n.x,n.y)||.001;const f=(n.r0-d)*0.08;n.x+=n.x/d*f;n.y+=n.y/d*f;}
+    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j];
+      const dxMin=a.rad+b.rad+9+(a.lw+b.lw)*0.26, dyMin=a.rad+b.rad+19;
+      const nx=(b.x-a.x)/dxMin, ny=(b.y-a.y)/dyMin, d=Math.hypot(nx,ny);
+      if(d<1){const p=(1-d)*0.5,ux=(nx/(d||.001))*dxMin*p,uy=(ny/(d||.001))*dyMin*p;
+        a.x-=ux;a.y-=uy;b.x+=ux;b.y+=uy;}
+    }
+    for(const n of nodes){const min=54;const d=Math.hypot(n.x,n.y)||.01;if(d<min){n.x*=min/d;n.y*=min/d}}
+  }
+  let ext=90; nodes.forEach(n=>ext=Math.max(ext,Math.hypot(n.x,n.y)+n.rad));
+  map.extent=ext;
+  // 未解放領域はさらに外側へ。輪郭だけのゴーストとして散らす。
+  map.ghostNodes=[];
+  for(let i=0;i<map.ghosts;i++){
+    const ang=base+(nodes.length+i)*2.39996;
+    const rr=ext*(1.10+0.34*(((i*7)%13)/13));
+    map.ghostNodes.push({x:Math.cos(ang)*rr,y:Math.sin(ang)*rr,rad:4.2,ghost:true});
+  }
+  map.inner=[];
+  if(map.viewType==='related'&&map.seedType!=='genre'){
+    const top=core.slice(0,26);
+    for(let i=0;i<top.length;i++)for(let j=i+1;j<top.length;j++){
+      const ts=REL[relKey(top[i].id,top[j].id)]; if(ts) map.inner.push({a:top[i],b:top[j],types:ts});
+    }
+  }
+}
+/* 同じジャンルの地図はサブジャンルごとの「島」に組む。
+   放射状の関連マップとは形そのものを変えて、別の地図だと分かるようにする。 */
+function layoutIslands(map,base){
+  const nodes=map.nodes;
+  const ids=[...new Set(nodes.map(n=>n.cluster))];
+  const groups=ids.map(id=>({id,name:GENRES[id].name,cat:GENRES[id].cat,
+    items:nodes.filter(n=>n.cluster===id)})).sort((a,b)=>b.items.length-a.items.length);
+  const N=groups.length;
+  groups.forEach((g,i)=>{
+    const ang=base+(i/N)*6.283;
+    const spread=Math.sqrt(g.items.length)*16+18;
+    const rr=140+spread*0.7+(i%2)*30;
+    g.x=Math.cos(ang)*rr; g.y=Math.sin(ang)*rr;
+    g.items.forEach((n,k)=>{
+      const a2=base+k*2.39996, r2=Math.sqrt(k+0.6)*15;
+      n.cx=g.x; n.cy=g.y; n.rad=6.6;
+      n.x=g.x+Math.cos(a2)*r2; n.y=g.y+Math.sin(a2)*r2;
+    });
+  });
+  for(let k=0;k<170;k++){
+    for(const n of nodes){ n.x+=(n.cx-n.x)*0.045; n.y+=(n.cy-n.y)*0.045; }
+    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j];
+      const dxMin=a.rad+b.rad+9+(a.lw+b.lw)*0.24, dyMin=a.rad+b.rad+18;
+      const nx=(b.x-a.x)/dxMin, ny=(b.y-a.y)/dyMin, d=Math.hypot(nx,ny);
+      if(d<1){const p=(1-d)*0.5,ux=(nx/(d||.001))*dxMin*p,uy=(ny/(d||.001))*dyMin*p;
+        a.x-=ux;a.y-=uy;b.x+=ux;b.y+=uy;}
+    }
+    for(const n of nodes){const min=70;const d=Math.hypot(n.x,n.y)||.01;if(d<min){n.x*=min/d;n.y*=min/d}}
+  }
+  groups.forEach(g=>{
+    let sx=0,sy=0; g.items.forEach(n=>{sx+=n.x;sy+=n.y});
+    g.x=sx/g.items.length; g.y=sy/g.items.length;
+    let r=0; g.items.forEach(n=>r=Math.max(r,Math.hypot(n.x-g.x,n.y-g.y)+n.rad));
+    g.r=r+18;
+  });
+  map.clusters=groups.map(g=>({id:g.id,name:g.name,cat:g.cat,x:g.x,y:g.y,r:g.r,count:g.items.length,
+    first:map.nodes.indexOf(g.items[0])}));
+  let ext=90; nodes.forEach(n=>ext=Math.max(ext,Math.hypot(n.x,n.y)+n.rad));
+  map.extent=ext;
+  map.ghostNodes=[];
+  for(let i=0;i<map.ghosts;i++){
+    const ang=base+(nodes.length+i)*2.39996;
+    const rr=ext*(1.12+0.30*(((i*7)%13)/13));
+    map.ghostNodes.push({x:Math.cos(ang)*rr,y:Math.sin(ang)*rr,rad:4.2,ghost:true});
+  }
+  map.inner=[];
+}
+function fitZoom(nodes){
+  let ext=80;
+  for(const n of nodes) ext=Math.max(ext,Math.hypot(Math.abs(n.x)+n.lw/2,Math.abs(n.y)+n.rad+14));
+  return Math.max(0.55,Math.min(1.25,Math.min(cw*0.46,ch*0.33)/ext));
+}
+function markRevealed(map,from,to,now){
+  for(let i=from;i<to;i++){
+    const n=map.nodes[i]; if(!n)break;
+    if(n._seen)continue;
+    n._seen=true; n.t0=now; n.delay=(i-from)*20; n.dur=220; n.appear=true; n.fromX=n.x; n.fromY=n.y;
+  }
+}
+function buildGraph(type,key,opts={}){
+  if(S.apiFail&&!opts.fromCache){S.graph=null;show('sc05');fitCanvas();rail('error');$('#g-empty').classList.add('on');
+    $('#g-empty-msg').textContent='いま地図を描けませんでした';paint();return;}
+  const map=generateMap({seedType:type,seedKey:key,viewType:opts.viewType||'related',
+    genreId:opts.genreId||null,randomSeed:opts.randomSeed??null,parentMapId:opts.parentMapId||null,
+    randomOn:opts.randomOn??null});
+  if(opts.revealed) map.revealed=Math.min(opts.revealed,map.nodes.length);
+  installMap(map,opts);
+  return map;
+}
+function installMap(map,opts={}){
+  $('#g-empty').classList.remove('on');
+  if(!opts.silent)show('sc05');
+  if(S.screen==='sc05')fitCanvas();
+  const prev={};
+  if(S.graph){S.graph.nodes.forEach((n,i)=>{if(i<S.graph.revealed)prev[n.id]={x:n.x,y:n.y}});prev[S.graph.seedKey]={x:0,y:0};}
+  layoutMap(map);
+  const now=performance.now();
+  map.nodes.forEach((n,i)=>{
+    if(i<map.revealed){
+      const p=prev[n.id];
+      n._seen=true; n.t0=now; n.delay=p?0:Math.min(i,40)*20; n.dur=p?700:420; n.appear=!p;
+      n.fromX=p?p.x:n.x; n.fromY=p?p.y:n.y;
+    }
+  });
+  S.mapCache.set(mapKey(map.seedType,map.seedKey,map.viewType,map.genreId),map);
+  S.graph=map; S.selected=null; S.highlight.clear();
+  S.view={z:fitZoom(map.nodes),x:0,y:0};
+  syncGraphChrome();
+  if(S.screen==='sc05'&&!S.sheetType)rail(map.viewType==='genre'?'genreGraph':'graph');
+  if(!opts.silent&&!opts.noLog)logMap(map);
+  startAnim();
+}
+/* FR-28 段階表示: 描画件数を増やすだけ。通信も再レイアウトも起きず、カメラも動かさない。 */
+function revealMore(all){
+  const g=S.graph; if(!g)return;
+  const from=g.revealed, to=all?g.nodes.length:Math.min(g.nodes.length,from+10);
+  if(to<=from)return;
+  markRevealed(g,from,to,performance.now());
+  g.revealed=to;
+  const rec=S.maps.find(m=>m.id===g.id); if(rec)rec.revealed=to;
+  syncGraphChrome(); startAnim();
+}
+/* FR-27 引き直し: 確定枠はそのまま、ランダム枠だけ新しい乱数シードで取り直す */
+function reroll(){
+  const g=S.graph; if(!g)return;
+  if(!g.canReroll){
+    toast(!g.randomOn ? '引き直しはランダム表示のときだけ使えます（検索画面で切り替え）'
+                      : 'このシードは引ける余地が残っていません',true);
+    return;
+  }
+  buildGraph(g.seedType,g.seedKey,{viewType:g.viewType,genreId:g.genreId,parentMapId:g.id});
+  toast('外周を引き直しました — 確定枠はそのままです');
+}
+const STEP_BAR='<span class="step-bar"><i id="step-bar"></i></span>';
+function syncGraphChrome(){
+  const g=S.graph; if(!g)return;
+  const ent=entitlement();
+  $('#g-name').textContent=g.seedName;
+  $('#g-meta').textContent=(g.viewType==='genre'
+      ? GENRES[g.genreId].name+' · 島 '+(g.clusters?g.clusters.length:0)
+        +(g.seedType==='genre'?'':' · 新顔 '+g.nodes.filter(n=>n.fresh).length)+' · '
+      : '確定 '+g.coreCount+' ＋ '+(g.randomOn?'ランダム ':'類似度順 ')+(g.nodes.length-g.coreCount)+' · ')
+    +g.revealed+' / '+g.nodes.length+' 表示';
+  $('#vt-switch').style.display=g.seedType==='genre'?'none':'grid';
+  $$('#vt-switch button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.vt===g.viewType?'true':'false'));
+  $('#vt-lock').style.display='none';
+  const rest=g.nodes.length-g.revealed, step=$('#btn-step');
+  step.disabled=false;
+  if(rest>0){
+    step.className='btn btn-primary btn-step';
+    step.innerHTML='<span class="s-main">＋ さらに '+Math.min(10,rest)+' 件</span><span class="s-sub">あと '+rest+' 件</span>'+STEP_BAR;
+  }else if(!ent.pro){
+    step.className='btn btn-locked btn-step';
+    step.innerHTML='<span class="s-main">🔒 もっとディグる（＋'+Math.max(g.ghosts,MAX_NODES-g.nodes.length)+'）</span><span class="s-sub">確定枠も外周も広がります</span>'+STEP_BAR;
+  }else{
+    step.className='btn btn-primary btn-step'; step.disabled=true;
+    step.innerHTML='<span class="s-main">全 '+g.nodes.length+' 件を表示中</span>'+STEP_BAR;
+  }
+  $('#step-bar').style.width=Math.round(g.revealed/Math.max(1,g.nodes.length)*100)+'%';
+  $('#genre-count').textContent=genreFacets().length;
+  updateZoom();
+  $('#btn-filter').setAttribute('aria-pressed',S.filters.on?'true':'false');
+  $('#offline-bar').classList.toggle('on',S.offline);
+}
+function excluded(n){
+  if(!S.filters.on)return false;
+  const f=S.filters, a=n.a;
+  if(a.begin<f.from||a.begin>f.to)return true;
+  if(f.country!=='all'&&a.country!==f.country)return true;
+  if(n.relationTypes&&n.relationTypes.length&&!n.relationTypes.some(t=>f.types.has(t)))return true;
+  return false;
+}
+function filterHits(){
+  const g=S.graph; if(!g)return 0;
+  return g.nodes.slice(0,g.revealed).filter(n=>!excluded(n)).length;
+}
+const ease=p=>1-Math.pow(1-p,3);
+const rgba=(hex,a)=>'rgba('+parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16)+','+a+')';
+function posOf(n,now){
+  const p=S.reduceMotion?1:Math.max(0,Math.min(1,(now-n.t0-n.delay)/n.dur));
+  const e=ease(p);
+  return {x:n.fromX+(n.x-n.fromX)*e, y:n.fromY+(n.y-n.fromY)*e, s:n.appear?0.25+0.75*e:1, o:n.appear?Math.min(1,p*1.6):1};
+}
+function edgeStyle(types){
+  const t=types.includes('member')?'member':types.includes('collab')?'collab':
+          types.includes('influence')?'influence':types.includes('label')?'label':'listen';
+  return {t,...REL_STYLE[t]};
+}
+let animRAF=null;
+function startAnim(){if(animRAF)cancelAnimationFrame(animRAF);const step=()=>{const done=paint();if(!done)animRAF=requestAnimationFrame(step);else animRAF=null};animRAF=requestAnimationFrame(step)}
+function paint(){
+  const now=performance.now(); let done=true;
+  ctx.save(); ctx.setTransform(DPR(),0,0,DPR(),0,0);
+  ctx.fillStyle='#0A0A0F'; ctx.fillRect(0,0,cw,ch);
+  const g=S.graph; if(!g){ctx.restore();return true}
+  if(S.screen!=='sc05'){ctx.restore();return true}   // 別の画面にいるあいだは呼吸を止める
+  const z=S.view.z;
+  ctx.translate(cx+S.view.x,cy+S.view.y); ctx.scale(z,z);
+  const lodFull=z>1.2, showLabels=z>=0.8, randDots=z<0.8;
+  const vis=g.nodes.slice(0,g.revealed);
+  /* ノードは常にゆっくり呼吸している。絞り込み・ハイライト中は対象だけが強く速く光り、
+     対象外は呼吸を止める（動きを減らす設定では全体を静止した強調に切り替える）。 */
+  const marking=S.filters.on||S.highlight.size>0;
+  const motion=!S.reduceMotion;
+  if(motion)done=false;
+  const isMarked=n=>!excluded(n)&&(!S.highlight.size||hlMatch(n));
+  const breathe=(n,ms)=>motion?(Math.sin(now/ms+(n.rank%17)*0.37)+1)/2:1;
+  const edgeGrow=n=>S.reduceMotion?1:ease(Math.max(0,Math.min(1,(now-n.t0-n.delay)/420)));
+
+  // 未解放領域（ゴースト）と、その手前の"霧"
+  if(g.ghostNodes&&g.ghostNodes.length){
+    const gr=g.extent*1.1;
+    const rg=ctx.createRadialGradient(0,0,gr*0.7,0,0,gr*1.55);
+    rg.addColorStop(0,'rgba(58,58,72,0)');rg.addColorStop(.45,'rgba(58,58,72,.18)');rg.addColorStop(1,'rgba(58,58,72,0)');
+    ctx.fillStyle=rg;ctx.beginPath();ctx.arc(0,0,gr*1.55,0,6.284);ctx.fill();
+    ctx.globalAlpha=.35; ctx.strokeStyle='#3A3A48'; ctx.lineWidth=1;
+    for(const q of g.ghostNodes){ctx.beginPath();ctx.arc(q.x,q.y,q.rad,0,6.284);ctx.stroke()}
+  }
+  // サブジャンルの島（同じジャンルの地図だけ）
+  if(g.clusters&&g.clusters.length){
+    for(const c of g.clusters){
+      if(c.first>=g.revealed) continue;
+      const col=CAT_COLOR[c.cat];
+      const hg=ctx.createRadialGradient(c.x,c.y,c.r*0.2,c.x,c.y,c.r);
+      hg.addColorStop(0,rgba(col,.13)); hg.addColorStop(.7,rgba(col,.05)); hg.addColorStop(1,rgba(col,0));
+      ctx.globalAlpha=1; ctx.fillStyle=hg;
+      ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,6.284);ctx.fill();
+      ctx.globalAlpha=.35; ctx.strokeStyle=rgba(col,.5); ctx.lineWidth=1; ctx.setLineDash([3,5]);
+      ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,6.284);ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+  // シードからのルート（ノードが現れたあと、線が伸びていく）
+  for(const n of vis){
+    const p=posOf(n,now); if(p.o<1)done=false;
+    const eg=edgeGrow(n); if(eg<1)done=false;
+    if(g.viewType==='genre') continue;      // 島の地図では放射線を引かない
+    const ex=excluded(n), dim=(S.highlight.size&&!hlMatch(n));
+    const tx=p.x*eg, ty=p.y*eg;
+    if(n.tier==='random'&&!n.relationTypes.length){
+      ctx.setLineDash([]); ctx.globalAlpha=(ex?.03:dim?.04:.12)*p.o;
+      ctx.strokeStyle='#3A3A48'; ctx.lineWidth=.6;
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(tx,ty);ctx.stroke(); continue;
+    }
+    const st=edgeStyle(n.relationTypes);
+    const strong=n.tier==='core';
+    ctx.globalAlpha=(ex?.05:dim?.09:(strong?.5:.24))*p.o;
+    ctx.lineWidth=Math.max(.6,(showLabels?1.5:0.8)*(0.4+(n.score||.42)));
+    ctx.strokeStyle=(S.relColors&&showLabels)?st.color:'#5C5C74';
+    ctx.setLineDash(showLabels&&S.relColors?(st.t==='influence'?[5,4]:st.t==='label'?[1.5,3.5]:[]):[]);
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(tx,ty);ctx.stroke();
+    if(S.relColors&&showLabels&&(st.t==='member'||st.t==='collab')){   // 二重線
+      const a=Math.atan2(p.y,p.x),ox=Math.sin(a)*2.1,oy=-Math.cos(a)*2.1;
+      ctx.globalAlpha*=.75;ctx.lineWidth=.9;
+      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(tx+ox,ty+oy);ctx.stroke();
+    }
+    if(S.relColors&&showLabels&&st.t==='influence'&&eg>.55){          // 影響の向き
+      ctx.setLineDash([]); ctx.globalAlpha=(ex?.06:dim?.1:.6)*p.o; ctx.fillStyle=st.color;
+      const a=Math.atan2(p.y,p.x), hx=p.x-Math.cos(a)*(n.rad+7), hy=p.y-Math.sin(a)*(n.rad+7), s=4.4;
+      ctx.beginPath();
+      ctx.moveTo(hx,hy);
+      ctx.lineTo(hx-Math.cos(a-0.42)*s,hy-Math.sin(a-0.42)*s);
+      ctx.lineTo(hx-Math.cos(a+0.42)*s,hy-Math.sin(a+0.42)*s);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.setLineDash([]);
+  // ノード間のルート（確定枠どうし）
+  for(const e of g.inner){
+    const ia=g.nodes.indexOf(e.a), ib=g.nodes.indexOf(e.b);
+    if(ia>=g.revealed||ib>=g.revealed) continue;
+    const pa=posOf(e.a,now),pb=posOf(e.b,now); const st=edgeStyle(e.types);
+    const eg=Math.min(edgeGrow(e.a),edgeGrow(e.b)); if(eg<1)done=false;
+    ctx.globalAlpha=.28*Math.min(pa.o,pb.o); ctx.strokeStyle=S.relColors?st.color:'#5C5C74'; ctx.lineWidth=.8;
+    ctx.setLineDash(st.t==='influence'?[4,4]:st.t==='label'?[1.5,3]:[]);
+    ctx.beginPath();ctx.moveTo(pa.x,pa.y);
+    ctx.lineTo(pa.x+(pb.x-pa.x)*eg,pa.y+(pb.y-pa.y)*eg);ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  // ノード（確定枠は高い明度、ランダム枠は一段落として"周辺"を表す）
+  for(const n of vis){
+    const p=posOf(n,now); if(p.o<1)done=false;
+    const rnd=n.tier==='random';
+    const r=(rnd&&randDots?2.2:n.rad*p.s);
+    const ex=excluded(n), dim=(S.highlight.size&&!hlMatch(n));
+    const sel=S.selected===n.id;
+    const lit=marking?isMarked(n):true;         // 絞り込み中は対象だけが光る
+    const pulse=lit?breathe(n,marking?380:1500):0;
+    if(lit&&marking){                           // 対象は強く（アクセント色のグロー）
+      const glow=ctx.createRadialGradient(p.x,p.y,r,p.x,p.y,r+11+pulse*5);
+      glow.addColorStop(0,'rgba(183,156,255,'+(0.30+pulse*0.32)+')');
+      glow.addColorStop(1,'rgba(183,156,255,0)');
+      ctx.globalAlpha=1; ctx.fillStyle=glow;
+      ctx.beginPath();ctx.arc(p.x,p.y,r+11+pulse*5,0,6.284);ctx.fill();
+    }else if(lit&&!randDots){                   // 通常時はジャンル色で静かに呼吸する
+      ctx.globalAlpha=(0.10+0.20*pulse)*p.o*(rnd?.6:1);
+      ctx.strokeStyle=CAT_COLOR[n.a.cat]; ctx.lineWidth=1.1;
+      ctx.beginPath();ctx.arc(p.x,p.y,r+2.6+2.2*pulse,0,6.284);ctx.stroke();
+    }
+    ctx.globalAlpha=(ex?.10:dim?.20:(rnd?.72:1))*p.o;
+    ctx.beginPath();ctx.arc(p.x,p.y,r*(sel?1.25:1),0,6.284);
+    ctx.fillStyle=CAT_COLOR[n.a.cat]; ctx.fill();
+    if(rnd&&!randDots){ ctx.globalAlpha=(ex?.06:dim?.10:.34)*p.o; ctx.fillStyle='#0A0A0F'; ctx.fill(); }
+    if(lit&&marking){ ctx.globalAlpha=.9; ctx.strokeStyle='#B79CFF'; ctx.lineWidth=1.4+pulse*0.8;
+      ctx.beginPath();ctx.arc(p.x,p.y,r+3.5+pulse*1.6,0,6.284);ctx.stroke(); }
+    if(S.listened.has(n.id)){ ctx.globalAlpha=Math.min(1,p.o);ctx.strokeStyle='#F5F5F7';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(p.x,p.y,r*(sel?1.25:1),0,6.284);ctx.stroke(); }
+    if(sel){ ctx.strokeStyle='#B79CFF';ctx.lineWidth=1.6;ctx.globalAlpha=1;
+      ctx.beginPath();ctx.arc(p.x,p.y,r*1.25+5,0,6.284);ctx.stroke(); }
+    // チェック済み（詳細を開いた／聴きに行った）バッジ
+    if(S.checked.has(n.id)&&!randDots){
+      const bx=p.x+r*0.86+2.4, by=p.y-r*0.86-2.4, br=4.6;
+      ctx.globalAlpha=p.o;
+      ctx.beginPath();ctx.arc(bx,by,br,0,6.284);
+      ctx.fillStyle=S.listened.has(n.id)?'#3DD68C':'#F5F5F7';ctx.fill();
+      ctx.strokeStyle='#0A0A0F';ctx.lineWidth=1.1;ctx.stroke();
+      ctx.strokeStyle='#0A0A0F';ctx.lineWidth=1.4;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(bx-2,by);ctx.lineTo(bx-0.5,by+1.8);ctx.lineTo(bx+2.1,by-1.9);ctx.stroke();
+      ctx.lineCap='butt';
+    }
+  }
+  drawSeed(g);
+  ctx.restore();
+  drawLabels(g,now,z,showLabels,lodFull);
+  return done;
+}
+/* SC-05 中心ノード：中心がアーティストなら常に人マーク、ジャンル起点のときだけ音符 */
+function drawSeed(g){
+  ctx.globalAlpha=1; ctx.setLineDash([]);
+  const sc=g.seedType==='genre'?CAT_COLOR[GENRES[g.seedKey].cat]:CAT_COLOR[g.seed.cat];
+  const halo=ctx.createRadialGradient(0,0,8,0,0,72);
+  halo.addColorStop(0,'rgba(124,92,255,.42)'); halo.addColorStop(.55,'rgba(124,92,255,.12)');
+  halo.addColorStop(1,'rgba(124,92,255,0)');
+  ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(0,0,72,0,6.284); ctx.fill();
+  ctx.strokeStyle='rgba(183,156,255,.30)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(0,0,36,0,6.284); ctx.stroke();
+  ctx.setLineDash([2,5]); ctx.strokeStyle='rgba(183,156,255,.45)';
+  ctx.beginPath(); ctx.arc(0,0,27,0,6.284); ctx.stroke(); ctx.setLineDash([]);
+  ctx.shadowColor='rgba(124,92,255,.9)'; ctx.shadowBlur=24;
+  ctx.beginPath(); ctx.arc(0,0,21,0,6.284); ctx.fillStyle='#7C5CFF'; ctx.fill(); ctx.shadowBlur=0;
+  ctx.lineWidth=2.6; ctx.strokeStyle=sc; ctx.stroke();
+  ctx.fillStyle='#F5F5F7'; ctx.strokeStyle='#F5F5F7';
+  if(g.seedType==='genre'){                                 // 音符（ジャンルそのものが中心のとき）
+    ctx.beginPath(); ctx.ellipse(-2.6,5.4,4,3,-0.35,0,6.284); ctx.fill();
+    ctx.lineWidth=1.8; ctx.beginPath(); ctx.moveTo(1.2,5.2); ctx.lineTo(1.2,-6.4);
+    ctx.lineTo(7.6,-8.6); ctx.stroke();
+  }else{                                                    // 人
+    ctx.beginPath(); ctx.arc(0,-4.2,3.7,0,6.284); ctx.fill();
+    ctx.lineWidth=3.4; ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(0,9.5,7.4,Math.PI*1.18,Math.PI*1.82); ctx.stroke();
+    ctx.lineCap='butt';
+  }
+}
+/* ラベルは画面座標・固定サイズで描く。拡大するほど相対的に空きが出て、隠れていた名前が現れる。 */
+function drawLabels(g,now,z,showLabels,lodFull){
+  ctx.save(); ctx.setTransform(DPR(),0,0,DPR(),0,0);
+  const ox=cx+S.view.x, oy=cy+S.view.y;
+  const inflate=(r,m)=>({x:r.x-m,y:r.y-m,w:r.w+m*2,h:r.h+m*2});
+  const hits=(r,list)=>list.some(q=>!(r.x+r.w<q.x||q.x+q.w<r.x||r.y+r.h<q.y||q.y+q.h<r.y));
+  const placed=[{x:ox-26*z,y:oy-26*z,w:52*z,h:52*z}];
+
+  // シード名は常にチップで表示する（縮小時も中心が読める）
+  ctx.font=SEED_FONT;
+  const sw=ctx.measureText(g.seedName).width, cw2=sw+24, ch2=27;
+  const chip={x:ox-cw2/2,y:oy-21*z-14-ch2,w:cw2,h:ch2};
+  ctx.beginPath();
+  if(ctx.roundRect)ctx.roundRect(chip.x,chip.y,chip.w,chip.h,13); else ctx.rect(chip.x,chip.y,chip.w,chip.h);
+  ctx.fillStyle='#7C5CFF'; ctx.shadowColor='rgba(0,0,0,.55)'; ctx.shadowBlur=10; ctx.fill(); ctx.shadowBlur=0;
+  ctx.strokeStyle='rgba(183,156,255,.7)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(g.seedName,ox,chip.y+ch2/2+.5);
+  ctx.textBaseline='alphabetic';
+  placed.push(inflate(chip,4));
+  // 起点であることの短い注記
+  ctx.font='500 10px "JetBrains Mono",monospace'; ctx.fillStyle='#8E8E9A';
+  ctx.fillText(g.viewType==='genre'?'GENRE SEED':'SEED', ox, chip.y-7);
+  placed.push({x:ox-40,y:chip.y-18,w:80,h:14});
+
+  // サブジャンルの島の名前は、ノード名より先に場所を取る
+  if(g.clusters&&g.clusters.length){
+    ctx.font='700 11.5px "Zen Kaku Gothic New",system-ui,sans-serif'; ctx.textAlign='center';
+    for(const c of g.clusters){
+      if(c.first>=g.revealed) continue;
+      const sx=ox+c.x*z, sy=oy+(c.y-c.r)*z-9;
+      if(sx<-70||sx>cw+70||sy<-20||sy>ch+20) continue;
+      const t=c.name+' · '+c.count;
+      const w=ctx.measureText(t).width;
+      ctx.globalAlpha=.95; ctx.fillStyle=CAT_COLOR[c.cat];
+      ctx.shadowColor='rgba(10,10,15,.95)'; ctx.shadowBlur=5;
+      ctx.fillText(t,sx,sy); ctx.shadowBlur=0;
+      placed.push({x:sx-w/2-6,y:sy-13,w:w+12,h:18});
+    }
+  }
+  if(showLabels){
+    ctx.font=LABEL_FONT; ctx.textAlign='center';
+    const list=g.nodes.slice(0,g.revealed).filter(n=>!excluded(n));
+    list.sort((a,b)=>(S.selected===b.id)-(S.selected===a.id)||a.rank-b.rank);
+    for(const n of list){
+      if(n.tier==='random'&&!lodFull&&g.viewType!=='genre') continue;   // 倍率 1.2 未満ではランダム枠のラベルを隠す
+      if(!S.labelDense&&n.rank>40) continue;
+      const p=posOf(n,now);
+      const sx=ox+p.x*z, sy=oy+p.y*z, r=n.rad*p.s*z;
+      if(sx<-60||sx>cw+60||sy<-40||sy>ch+40) continue;
+      const w=n.lw+6, h=14;
+      const cand=[[0,r+13],[0,-r-6],[r+8+w/2,5],[-(r+8+w/2),5],
+                  [0,r+25],[0,-r-18],[r+8+w/2,-9],[-(r+8+w/2),-9]];
+      for(const [dx,dy] of cand){
+        const rect={x:sx+dx-w/2,y:sy+dy-11,w,h};
+        if(hits(rect,placed)) continue;
+        placed.push(rect);
+        const dim=(S.highlight.size&&!hlMatch(n));
+        ctx.globalAlpha=(dim?.35:1)*p.o;
+        ctx.shadowColor='rgba(10,10,15,.95)'; ctx.shadowBlur=4;
+        ctx.fillStyle=S.selected===n.id?'#B79CFF':'#F5F5F7';
+        ctx.fillText(n.label,sx+dx,sy+dy);
+        ctx.shadowBlur=0;
+        break;
+      }
+    }
+  }
+  ctx.restore();
+}
+function hlMatch(n){if(!n.a)return false;const v=VEC[n.a.id];for(const gid of S.highlight){if(v[gid])return true}return false}
+function genreFacets(){
+  const g=S.graph; if(!g)return[];
+  const cnt={};
+  g.nodes.slice(0,g.revealed).filter(n=>!excluded(n)).forEach(n=>{
+    const seen=new Set();
+    n.a.genres.forEach(gid=>{let c=gid;while(c&&!seen.has(c)){seen.add(c);cnt[c]=(cnt[c]||0)+1;c=GENRES[c].parent}});
+  });
+  return Object.keys(cnt).map(id=>({id,count:cnt[id]})).sort((a,b)=>b.count-a.count);
+}
+
+/* ============================================================
+   グラフ操作（FR-04）
+   ============================================================ */
+function pt(e){const r=cv.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;
+  return {sx,sy,wx:(sx-cx-S.view.x)/S.view.z,wy:(sy-cy-S.view.y)/S.view.z}}
+function hitTest(wx,wy){
+  if(!S.graph)return null;
+  if(Math.hypot(wx,wy)<=21)return{seed:true};
+  const now=performance.now();let best=null,bd=1e9;
+  for(const n of S.graph.nodes.slice(0,S.graph.revealed)){const p=posOf(n,now);const d=Math.hypot(p.x-wx,p.y-wy);
+    if(d<Math.max(n.rad+9,15)&&d<bd){bd=d;best=n}}
+  if(best)return best;
+  for(const q of (S.graph.ghostNodes||[])){if(Math.hypot(q.x-wx,q.y-wy)<12)return{ghost:true}}
+  return null;
+}
+let drag=null,clickTimer=null,lpTimer=null,pinch=null,suppressTap=0;
+const ptrs=new Map();
+function pinchGeom(){
+  const [a,b]=[...ptrs.values()];
+  return {d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2};
+}
+cv.addEventListener('pointerdown',e=>{
+  cv.setPointerCapture(e.pointerId);
+  const r=cv.getBoundingClientRect();
+  ptrs.set(e.pointerId,{x:e.clientX-r.left,y:e.clientY-r.top});
+  if(ptrs.size===2){ // ピンチ開始：1本目のタップ処理をすべて取り消す
+    clearTimeout(lpTimer); clearTimeout(clickTimer); drag=null;
+    const g=pinchGeom();
+    pinch={d0:g.d||1,z0:S.view.z,wx:(g.mx-cx-S.view.x)/S.view.z,wy:(g.my-cy-S.view.y)/S.view.z};
+    return;
+  }
+  if(ptrs.size>2)return;
+  const p=pt(e); drag={x:e.clientX,y:e.clientY,ox:S.view.x,oy:S.view.y,moved:false,p};
+  lpTimer=setTimeout(()=>{const h=hitTest(p.wx,p.wy);if(h&&!h.seed&&!h.ghost){drag.moved=true;openCtx(h,p.sx,p.sy)}},520);
+});
+cv.addEventListener('pointermove',e=>{
+  const rec=ptrs.get(e.pointerId);
+  if(rec){const r=cv.getBoundingClientRect();rec.x=e.clientX-r.left;rec.y=e.clientY-r.top}
+  if(pinch&&ptrs.size>=2){ // ピンチイン／アウト：2本指の中点を固定して拡大縮小
+    const g=pinchGeom();
+    const nz=Math.max(ZMIN,Math.min(ZMAX,pinch.z0*(g.d/pinch.d0)));
+    S.view.x=g.mx-cx-pinch.wx*nz; S.view.y=g.my-cy-pinch.wy*nz; S.view.z=nz;
+    updateZoom(); paint(); return;
+  }
+  if(!drag)return; const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  if(Math.hypot(dx,dy)>5){drag.moved=true;clearTimeout(lpTimer);S.view.x=drag.ox+dx;S.view.y=drag.oy+dy;paint();}
+});
+const endPtr=e=>{
+  ptrs.delete(e.pointerId);
+  if(ptrs.size<2&&pinch){pinch=null;suppressTap=performance.now()+350;drag=null}
+};
+cv.addEventListener('pointercancel',endPtr);
+cv.addEventListener('pointerup',e=>{
+  endPtr(e);
+  clearTimeout(lpTimer); if(!drag)return; const moved=drag.moved; const p=drag.p; drag=null;
+  if(moved||performance.now()<suppressTap)return;
+  const h=hitTest(p.wx,p.wy);
+  clearTimeout(clickTimer);
+  clickTimer=setTimeout(()=>{
+    if(!h){S.selected=null;paint();return}
+    if(h.seed){openArtistSheet(S.graph.seedType==='genre'?null:S.graph.seed,null);return}
+    if(h.ghost){openPaywall();return}
+    S.selected=h.id;paint();openArtistSheet(h.a,h);
+  },230);
+});
+cv.addEventListener('dblclick',e=>{
+  clearTimeout(clickTimer); const p=pt(e); const h=hitTest(p.wx,p.wy);
+  if(h&&!h.seed&&!h.ghost){closeSheet();rediG(h.a.id)}
+  else if(h&&h.ghost){openPaywall()}
+  else{centerOnSeed(true)}
+});
+cv.addEventListener('contextmenu',e=>{e.preventDefault();const p=pt(e);const h=hitTest(p.wx,p.wy);
+  if(h&&!h.seed&&!h.ghost)openCtx(h,p.sx,p.sy)});
+const ZMIN=0.5, ZMAX=4;
+function updateZoom(){$('#zoom-lv').textContent=Math.round(S.view.z*100)+'%'}
+function setZoomAt(nz,wx,wy){
+  nz=Math.max(ZMIN,Math.min(ZMAX,nz));
+  S.view.x-=wx*(nz-S.view.z); S.view.y-=wy*(nz-S.view.z); S.view.z=nz; updateZoom(); paint();
+}
+function zoomBy(f){setZoomAt(S.view.z*f,-S.view.x/S.view.z,-S.view.y/S.view.z)}
+cv.addEventListener('wheel',e=>{
+  e.preventDefault(); const p=pt(e); setZoomAt(S.view.z*(e.deltaY<0?1.12:0.89),p.wx,p.wy);
+},{passive:false});
+$('#zoom-in').onclick=()=>zoomBy(1.3);
+$('#zoom-out').onclick=()=>zoomBy(1/1.3);
+/* 中心（検索したアーティスト）へ視点を戻す */
+function animateView(tx,ty,tz){
+  const s={x:S.view.x,y:S.view.y,z:S.view.z}, t0=performance.now(), d=S.reduceMotion?1:420;
+  const step=()=>{const p=Math.min(1,(performance.now()-t0)/d),e=ease(p);
+    S.view.x=s.x+(tx-s.x)*e; S.view.y=s.y+(ty-s.y)*e; S.view.z=s.z+(tz-s.z)*e;
+    updateZoom(); paint(); if(p<1)requestAnimationFrame(step)};
+  requestAnimationFrame(step);
+}
+function centerOnSeed(fit){
+  if(!S.graph)return;
+  animateView(0,0,fit?fitZoom(S.graph.nodes):S.view.z);
+}
+function rediG(artistId){buildGraph('artist',artistId);toast('中心を付け替えました');}
+
+/* コンテキストメニュー（FR-11） */
+function openCtx(n,x,y){
+  const m=$('#ctxmenu'); const bm=S.bookmarks.includes(n.id);
+  m.innerHTML=`<button data-a="copy">名前をコピー</button>
+    <button data-a="bm">${bm?'ブックマークを外す':'ブックマークする'}</button>
+    <button data-a="listen">${SERVICES[S.service||'spotify'].name} で聴く</button>
+    <button data-a="dig">ここから掘る</button>`;
+  m.style.left=Math.min(cw-190,x)+'px'; m.style.top=Math.min(ch-190,y)+'px'; m.classList.add('on');
+  m.onclick=ev=>{const a=ev.target.closest('button')?.dataset.a; if(!a)return; m.classList.remove('on');
+    if(a==='copy'){navigator.clipboard?.writeText(n.a.name);toast('「'+n.a.name+'」をコピーしました')}
+    if(a==='bm')toggleBookmark(n.id);
+    if(a==='listen')launch(n.a,S.service||'spotify');
+    if(a==='dig')rediG(n.a.id);
+  };
+}
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#ctxmenu'))$('#ctxmenu').classList.remove('on')},true);
+
+/* ============================================================
+   シート
+   ============================================================ */
+function openSheet(type,html,pct){
+  S.sheetType=type; const sh=$('#sheet');
+  $('#sheet-body').innerHTML=html; sh.style.height=(pct||62)+'%';
+  sh.classList.add('on'); $('#scrim').classList.add('on'); rail(type);
+}
+function closeSheet(){$('#sheet').classList.remove('on');$('#scrim').classList.remove('on');S.sheetType=null;
+  if(S.screen==='sc05')rail(S.graph&&S.graph.seedType==='genre'?'genreGraph':'graph');}
+$('#scrim').onclick=closeSheet;
+(function(){ // グラバーでスナップ変更（peek 44 / half 62 / full 90）
+  const snaps=[44,62,90]; let st=null;
+  $('#grabber').addEventListener('pointerdown',e=>{const sh=$('#sheet');st={y:e.clientY,h:sh.getBoundingClientRect().height};
+    $('#grabber').setPointerCapture(e.pointerId)});
+  window.addEventListener('pointermove',e=>{if(!st)return;const h=st.h+(st.y-e.clientY);
+    $('#sheet').style.height=Math.max(180,Math.min(760,h))+'px'});
+  window.addEventListener('pointerup',()=>{if(!st)return;const sh=$('#sheet');const pct=sh.getBoundingClientRect().height/844*100;
+    const near=snaps.reduce((a,b)=>Math.abs(b-pct)<Math.abs(a-pct)?b:a);sh.style.height=near+'%';st=null});
+  $('#grabber').addEventListener('click',()=>{const sh=$('#sheet');const cur=parseFloat(sh.style.height)||62;
+    sh.style.height=snaps[(snaps.findIndex(s=>Math.abs(s-cur)<6)+1)%3]+'%'});
+})();
+
+const flag=c=>({GB:'🇬🇧',US:'🇺🇸',JP:'🇯🇵',IS:'🇮🇸',IE:'🇮🇪',DE:'🇩🇪',CA:'🇨🇦',PL:'🇵🇱',BE:'🇧🇪',
+  NG:'🇳🇬',ML:'🇲🇱',NE:'🇳🇪',BR:'🇧🇷',NL:'🇳🇱',IT:'🇮🇹',KR:'🇰🇷',CL:'🇨🇱',AU:'🇦🇺',NZ:'🇳🇿'}[c]||'🌐');
+function initials(n){return n.replace(/[^A-Za-z0-9ぁ-んァ-ヶ一-龠]/g,'').slice(0,2).toUpperCase()}
+function openArtistSheet(a,node){
+  if(!a){ openSheet('genre',genreSheetHTML(),62); bindGenreSheet(); return; }
+  S.checked.add(a.id); startAnim();   // 一度でも開いたら「チェック済み」
+  const others=Object.keys(SERVICES).filter(k=>k!==(S.service||'spotify'));
+  const core=node&&node.tier==='core';
+  const rels=core?node.relationTypes:[];
+  const relHTML=core?rels.map(t=>{const st=REL_STYLE[t];
+    return `<div class="rel-item"><span class="rel-swatch" style="border-color:${st.color};border-top-style:${t==='influence'?'dashed':t==='label'?'dotted':'solid'}"></span>
+      <span><b style="font-weight:500">${st.label}</b> — ${st.desc}</span></div>`}).join('')
+    :`<div class="rel-item"><span class="rel-swatch" style="border-color:#9A9AB0"></span>
+      <span>${S.graph.viewType==='genre'?(node&&node.fresh?'同じジャンル — 関連アーティストの地図には出てこなかった顔ぶれです':'同じジャンル — 関連アーティストの地図にも出ています'):(S.graph.randomOn?'ランダム枠 — 強い関連ではなく「周辺」から引かれました':'類似度順 — 確定枠のすぐ外側です')}</span></div>`;
+  const genreChips=a.genres.map(g=>`<button class="chip" data-g="${g}" style="color:${CAT_COLOR[GENRES[g].cat]}">
+    <span class="gdot" style="background:${CAT_COLOR[GENRES[g].cat]}"></span>${GENRES[g].name}</button>`).join('');
+  const listened=S.listened.has(a.id);
+  openSheet('artist',`
+    <div style="display:flex;align-items:flex-start;gap:12px">
+      <div class="avatar" style="background:${CAT_COLOR[a.cat]}">${initials(a.name)}</div>
+      <div style="flex:1;min-width:0">
+        <h2 class="h-title">${a.name}</h2>
+        <p class="t-cap mono">${a.begin}年〜${a.end?a.end+'年':''} · ${flag(a.country)} ${a.country}${core?' · 類似度 '+Math.round(node.score*100)+'%':''}</p>
+        <p class="t-cap"><span class="tier-tag ${core?'is-core':'is-rand'}">${core?'確定枠':node?(S.graph.randomOn?'ランダム枠':'類似度順'):'シード'}</span></p>
+      </div>
+      <button class="icon-btn" data-act="bm" aria-label="ブックマーク">${S.bookmarks.includes(a.id)?'★':'☆'}</button>
+    </div>
+    <p class="t-cap" style="color:${listened?'var(--success)':'var(--text-secondary)'}">
+      ${listened?'✓ チェック済み — 外部アプリで聴きに行きました':'✓ チェック済み — 地図では白いチェックが付きます'}</p>
+    <div class="svc-launch">
+      <p class="t-cap">フル尺で聴く（FR-23）</p>
+      <button class="btn-primary" data-svc="${S.service||'spotify'}">▶ ${SERVICES[S.service||'spotify'].name} で聴く</button>
+      <div class="svc-sub">${others.map(k=>`<button data-svc="${k}">${SERVICES[k].short}</button>`).join('')}</div>
+    </div>
+    <div>
+      <h3 class="sec-head" style="margin-bottom:9px">${S.graph.seedName} との関係</h3>
+      <div class="rel-list">${relHTML||'<div class="rel-item">ジャンル起点のグラフのため関係タイプは表示しません</div>'}</div>
+    </div>
+    <div class="chips">${genreChips}</div>
+    <dl class="meta-grid">
+      <dt>表示順</dt><dd>${node?'#'+node.rank+' / '+S.graph.nodes.length:'シード'}</dd>
+      <dt>代表度</dt><dd>${a.pop.toFixed(2)}</dd>
+      <dt>MBID</dt><dd style="color:var(--text-secondary)">mock-${a.id}</dd>
+    </dl>
+    <button class="btn-primary" data-act="dig" style="background:#26263A">ここから掘る</button>
+    <div class="sheet-foot">
+      <button class="linkbtn" data-act="share">共有</button>
+      <button class="linkbtn" data-act="bm">${S.bookmarks.includes(a.id)?'ブックマーク済み':'ブックマーク'}</button>
+    </div>`,62);
+  $('#sheet-body').onclick=e=>{
+    const b=e.target.closest('button'); if(!b)return;
+    if(b.dataset.svc)launch(a,b.dataset.svc);
+    if(b.dataset.g){S.highlight=new Set([b.dataset.g]);closeSheet();paint();toast(GENRES[b.dataset.g].name+' をハイライトしました')}
+    if(b.dataset.act==='dig'){closeSheet();rediG(a.id)}
+    if(b.dataset.act==='bm'){toggleBookmark(a.id);openArtistSheet(a,node)}
+    if(b.dataset.act==='share')openShare();
+  };
+}
+function launch(a,svc){
+  if(!S.service){pickServiceModal(()=>launch(a,svc));return}
+  S.listened.add(a.id); logListened(a);
+  closeSheet(); paint();
+  toast(SERVICES[svc].name+' を開きました — 戻るとグラフは完全復元されます（FR-06）');
+}
+function toggleBookmark(id){
+  const i=S.bookmarks.indexOf(id);
+  if(i>=0){S.bookmarks.splice(i,1);toast('ブックマークを外しました')}
+  else{
+    if(!isPro()&&S.bookmarks.length>=10){openPaywall();toast('無料プランは10件までです',true);return}
+    S.bookmarks.unshift(id);toast('保存しました');
+  }
+  paint(); if(S.tab==='history')renderHistory();
+}
+function logListened(a){const m=S.maps.find(x=>x.id===(S.graph&&S.graph.id));if(m)m.listened=(m.listened||0)+1}
+/* FR-02b: マップはノード集合そのものを持つ。乱数シードだけでは月次更新で別物になってしまう。 */
+function logMap(map){
+  S.maps.unshift({id:map.id, seedType:map.seedType, seedKey:map.seedKey, seedName:map.seedName,
+    viewType:map.viewType, genreId:map.genreId, nodeIds:map.nodes.map(n=>n.id), coreCount:map.coreCount,
+    randomSeed:map.randomSeed, randomOn:map.randomOn, schemaVersion:map.schemaVersion, parentMapId:map.parentMapId,
+    at:map.createdAt, revealed:map.revealed, listened:0});
+  if(S.maps.length>40)S.maps.pop();
+  renderHome();
+}
+/* 履歴から開く: 保存されたノード集合と乱数シードで、当時と同じ地図を組み直す */
+function openSavedMap(rec){
+  buildGraph(rec.seedType,rec.seedKey,{viewType:rec.viewType,genreId:rec.genreId,
+    randomSeed:rec.randomSeed||null,randomOn:rec.randomOn,parentMapId:rec.parentMapId,revealed:rec.revealed,noLog:true});
+  if(S.graph){S.graph.id=rec.id; S.graph.createdAt=rec.at;}
+  toast('保存されたノード集合で復元しました');
+}
+
+/* SC-07 ジャンルパネル */
+function genreSheetHTML(){
+  const facets=genreFacets(); const map={}; facets.forEach(f=>map[f.id]=f.count);
+  const roots=facets.filter(f=>!GENRES[f.id].parent);
+  const rows=[];
+  const walk=(id,depth)=>{
+    const kids=GENRES[id].children.filter(c=>map[c]);
+    const open=S.expanded.has(id);
+    rows.push(`<button class="gnode d${depth}" data-g="${id}" aria-pressed="${S.highlight.has(id)}">
+      <span class="caret" data-x="${kids.length?id:''}">${kids.length?(open?'▾':'▸'):''}</span>
+      <span class="gdot" style="background:${CAT_COLOR[GENRES[id].cat]}"></span>
+      <span class="nm">${GENRES[id].name}</span><span class="ct">${map[id]}</span></button>`);
+    if(open)kids.sort((a,b)=>map[b]-map[a]).forEach(c=>walk(c,Math.min(3,depth+1)));
+  };
+  roots.forEach(r=>walk(r.id,1));
+  return `<div style="display:flex;align-items:center;justify-content:space-between">
+      <h2 class="h-title">ジャンル（${facets.length}）</h2>
+      <button class="pill" data-act="clear">ハイライト解除</button></div>
+    <div class="gtree">${rows.join('')}</div>
+    <p class="t-cap">親ジャンルを選ぶと子ジャンルも含めてハイライトします。階層は最大3段（FR-10）。</p>
+    <button class="btn-primary" data-act="dig" ${S.highlight.size?'':'disabled'}>このジャンルを掘る</button>`;
+}
+function bindGenreSheet(){
+  $('#sheet-body').onclick=e=>{
+    const caret=e.target.closest('.caret');
+    if(caret&&caret.dataset.x){const id=caret.dataset.x;S.expanded.has(id)?S.expanded.delete(id):S.expanded.add(id);
+      $('#sheet-body').innerHTML=genreSheetHTML();return}
+    const g=e.target.closest('.gnode');
+    if(g){const id=g.dataset.g;S.highlight.has(id)?S.highlight.delete(id):S.highlight.add(id);
+      $('#sheet-body').innerHTML=genreSheetHTML();paint();return}
+    const act=e.target.closest('button')?.dataset.act;
+    if(act==='clear'){S.highlight.clear();$('#sheet-body').innerHTML=genreSheetHTML();paint()}
+    if(act==='dig'&&S.highlight.size){const gid=[...S.highlight][0];closeSheet();buildGraph('genre',gid);toast(GENRES[gid].name+' を中心に組み直しました')}
+  };
+}
+$('#btn-genre').onclick=()=>{openSheet('genre',genreSheetHTML(),72);bindGenreSheet()};
+
+/* SC-16 フィルタ */
+function filterSheetHTML(){
+  const f=S.filters, g=S.graph;
+  const cs=[...new Set((g?g.nodes.slice(0,g.revealed):[]).map(n=>n.a.country))].sort();
+  const t=(k,l)=>`<button class="chip" data-t="${k}" aria-pressed="${f.types.has(k)}" style="${f.types.has(k)?'border-color:'+(REL_STYLE[k].ui||REL_STYLE[k].color)+';color:'+(REL_STYLE[k].ui||REL_STYLE[k].color):''}">${l}</button>`;
+  return `<div style="display:flex;align-items:center;justify-content:space-between">
+      <h2 class="h-title">絞り込み</h2>
+      ${isPro()?'<span class="pill" style="color:var(--accent-glow);border-color:#3B3556">PRO</span>':'<span class="pill">Pro 限定</span>'}</div>
+    <div class="range-wrap">
+      <div style="display:flex;justify-content:space-between"><span class="t-cap">活動開始年（FR-22）</span>
+        <span class="mono" id="f-era" style="font-size:12px">${f.from} — ${f.to}</span></div>
+      <label class="t-cap" style="display:flex;align-items:center;gap:8px">開始
+        <input type="range" id="f-from" min="1940" max="2026" step="1" value="${f.from}"></label>
+      <label class="t-cap" style="display:flex;align-items:center;gap:8px">終了
+        <input type="range" id="f-to" min="1940" max="2026" step="1" value="${f.to}"></label>
+    </div>
+    <div><p class="t-cap" style="margin-bottom:8px">関係タイプ（FR-21）</p>
+      <div class="chips">${t('listen','共聴')}${t('collab','共演')}${t('member','メンバー')}${t('influence','影響')}${t('label','同レーベル')}</div></div>
+    <div><p class="t-cap" style="margin-bottom:8px">国</p>
+      <div class="chips"><button class="chip" data-c="all" aria-pressed="${f.country==='all'}">すべて</button>
+      ${cs.map(c=>`<button class="chip" data-c="${c}" aria-pressed="${f.country===c}">${flag(c)} ${c}</button>`).join('')}</div></div>
+    <p class="t-cap" id="f-hit">条件に合うのは <b class="mono" style="color:var(--accent-glow)">${filterPreview()}</b> / ${g?g.revealed:0} 件。
+      除外されたノードは消さずに不透明度 0.1 で残し、残ったノードを光らせます。</p>
+    <button class="btn btn-primary" data-act="apply">${f.on?'絞り込みを更新':'絞り込みを適用'}</button>
+    ${f.on?'<button class="btn btn-ghost" data-act="off">絞り込みを解除</button>':''}`;
+}
+/* 適用前でも「いま何件残るか」を見せる */
+function filterPreview(){
+  const g=S.graph; if(!g)return 0;
+  const was=S.filters.on; S.filters.on=true;
+  const n=g.nodes.slice(0,g.revealed).filter(x=>!excluded(x)).length;
+  S.filters.on=was; return n;
+}
+$('#btn-filter').onclick=()=>{
+  openSheet('filter',filterSheetHTML(),74);
+  const live=()=>{                       // 適用済みなら即座に地図へ反映する
+    $('#f-era').textContent=S.filters.from+' — '+S.filters.to;
+    $('#f-hit').innerHTML='条件に合うのは <b class="mono" style="color:var(--accent-glow)">'+filterPreview()
+      +'</b> / '+(S.graph?S.graph.revealed:0)+' 件。除外されたノードは消さずに不透明度 0.1 で残し、残ったノードを光らせます。';
+    if(S.filters.on){syncGraphChrome();startAnim()}
+  };
+  const rerender=()=>{$('#sheet-body').innerHTML=filterSheetHTML();bind()};
+  const bind=()=>{
+    // スライダーは再描画せず値だけ更新する（描き直すとドラッグが途切れるため）
+    const from=$('#f-from'), to=$('#f-to');
+    from.oninput=e=>{S.filters.from=Math.min(+e.target.value,S.filters.to);
+      if(+e.target.value>S.filters.to)e.target.value=S.filters.to; live()};
+    to.oninput=e=>{S.filters.to=Math.max(+e.target.value,S.filters.from);
+      if(+e.target.value<S.filters.from)e.target.value=S.filters.from; live()};
+    $('#sheet-body').onclick=e=>{
+      const b=e.target.closest('button'); if(!b)return;
+      if(b.dataset.t){const k=b.dataset.t;
+        S.filters.types.has(k)?S.filters.types.delete(k):S.filters.types.add(k);
+        if(!S.filters.types.size)S.filters.types.add(k);      // 全部オフは意味がないので戻す
+        rerender(); live(); return}
+      if(b.dataset.c){S.filters.country=b.dataset.c;rerender();live();return}
+      if(b.dataset.act==='apply'){
+        if(!isPro()){closeSheet();openPaywall();toast('絞り込みは Pro 限定です',true);return}
+        S.filters.on=true;closeSheet();syncGraphChrome();startAnim();
+        toast(filterHits()+' 件に絞り込みました');
+      }
+      if(b.dataset.act==='off'){S.filters.on=false;closeSheet();syncGraphChrome();paint();toast('絞り込みを解除しました')}
+    };
+  };
+  bind();
+};
+$('#btn-recenter').onclick=()=>{S.selected=null;centerOnSeed(false);toast(S.graph?'「'+S.graph.seedName+'」を中央に戻しました':'')};
+$('#g-back').onclick=()=>{show('main');rail(S.tab==='home'?'home':S.tab);};
+$('#g-menu').onclick=()=>{
+  const g=S.graph, m=$('#ctxmenu');
+  const saved=g&&S.bookmarks.includes('map:'+g.id);
+  m.innerHTML=`<button data-a="reroll"${g&&g.canReroll?'':' class="is-off"'}>🎲 引き直す（外周だけ）</button>
+    <button data-a="save">${saved?'マップの保存を外す':'このマップを保存'}</button>
+    <button data-a="share">画像で共有</button>
+    <button data-a="filter">絞り込み</button>`;
+  m.style.left=(cw-206)+'px'; m.style.top='128px'; m.classList.add('on');
+  m.onclick=ev=>{const a=ev.target.closest('button')?.dataset.a;if(!a)return;m.classList.remove('on');
+    if(a==='reroll')reroll();
+    if(a==='save')toggleBookmark('map:'+g.id);
+    if(a==='share')openShare();
+    if(a==='filter')$('#btn-filter').click();};
+};
+$('#g-retry').onclick=()=>{if(S.apiFail){toast('まだ復旧していません',true);return}
+  const r=S.maps[0];
+  if(r)openSavedMap(r); else buildGraph('artist',BY_NAME['Radiohead'].id);};
+/* 段階表示ボタン（FR-28）: タップで +10、長押しで権利範囲を一気に */
+(function(){
+  const b=$('#btn-step'); let t=null, long=false;
+  const down=()=>{long=false;t=setTimeout(()=>{long=true;
+    if(b.classList.contains('btn-locked'))openPaywall(); else revealMore(true);},550)};
+  const up=()=>{clearTimeout(t);};
+  b.addEventListener('pointerdown',down); b.addEventListener('pointerup',up);
+  b.addEventListener('pointerleave',up); b.addEventListener('pointercancel',up);
+  b.onclick=()=>{ if(long)return;
+    if(b.classList.contains('btn-locked')){openPaywall();return}
+    if(b.disabled){b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');return}
+    revealMore(false); };
+})();
+/* 表示タイプ切替（FR-29）: 新しいマップとして生成される */
+$('#vt-switch').onclick=e=>{
+  const b=e.target.closest('button'); if(!b||!S.graph)return;
+  const vt=b.dataset.vt; if(vt===S.graph.viewType)return;
+  const g=S.graph;
+  const gid=vt==='genre'?(g.seedType==='genre'?g.seedKey:mainGenreOf(g.seed)):null;
+  const cached=S.mapCache.get(mapKey(g.seedType,g.seedKey,vt,gid));
+  if(cached){                       // 行き来しても、開いていた件数と引いた結果をそのまま戻す
+    installMap(cached,{noLog:true});
+    toast('前に開いた状態に戻しました（'+cached.revealed+' / '+cached.nodes.length+' 件）');
+  }else{
+    buildGraph(g.seedType,g.seedKey,{viewType:vt,genreId:gid});
+    if(vt==='genre'&&!S.randomOn)toast('人気順で表示しています（ランダム表示は検索画面で切り替え）');
+  }
+};
+
+/* SC-09 ペイウォール */
+let planSel='pro_yearly';
+function paywallHTML(){
+  const rest=S.graph?Math.max(S.graph.ghosts,MAX_NODES-S.graph.nodes.length):70;
+  const rewardable=S.rewardUses<3&&Date.now()>=S.rewardUntil;
+  const p=(id,t,pr,sub,badge)=>`<button class="plan" data-p="${id}" aria-pressed="${planSel===id}">
+    ${badge?`<span class="badge">${badge}</span>`:''}<b style="font-family:var(--f-display)">${t}</b>
+    <span class="pr">${pr}</span><span class="t-cap">${sub}</span></button>`;
+  const val=['30 → 100 ノードへ','ランダム表示を混ぜて引き直せる回数も無制限',
+             'ジャンル階層と年代・関係タイプのフィルタ','広告なし・履歴とブックマークが無制限'];
+  return `<h2 class="h-display">まだ ${rest} 組が<br>隠れています</h2>
+    <p class="t-body" style="color:var(--text-secondary)">${S.graph?S.graph.seedName:''} の地図を全部見る</p>
+    <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px">
+      ${val.map(v=>`<li style="display:flex;gap:9px;font-size:14px"><span style="color:var(--success)">✓</span>${v}</li>`).join('')}
+    </ul>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      ${p('pro_yearly','DIGGR Pro 年額','¥3,800 / 年','7日間無料でお試し・自動更新・いつでも解約できます','34%OFF')}
+      ${p('pro_monthly','DIGGR Pro 月額','¥480 / 月','自動更新。ストアからいつでも解約できます')}
+    </div>
+    <button class="btn-primary" data-act="buy">${planSel==='pro_yearly'?'無料で始める':'購入する'}</button>
+    ${rewardable?`<button class="linkbtn" data-act="reward" style="justify-content:center">🎬 広告を見て30分だけ解放（本日あと ${3-S.rewardUses} 回）</button>`:''}
+    <div class="legal"><button data-act="restore">購入を復元</button><span>·</span><span>利用規約</span><span>·</span><span>プライバシー</span></div>`;
+}
+function openPaywall(){
+  openSheet('paywall',paywallHTML(),88);
+  $('#sheet-body').onclick=e=>{
+    const b=e.target.closest('button'); if(!b)return;
+    if(b.dataset.p){planSel=b.dataset.p;$('#sheet-body').innerHTML=paywallHTML();}
+    if(b.dataset.act==='buy')purchase(planSel);
+    if(b.dataset.act==='restore')toast('復元できる購入はありませんでした',true);
+    if(b.dataset.act==='reward'){closeSheet();openRewardDialog()}
+  };
+}
+function purchase(plan){
+  S.plan=plan; syncRail(); closeSheet();
+  expandCurrent();
+  toast(plan==='pro_yearly'?'DIGGR Pro（年額）を開始しました。7日間は無料です':'DIGGR Pro（月額）を開始しました');
+}
+/* 課金・リワードで権利が変わったとき: 引き直さずに同じマップを広げる（UC-02）。
+   いま見えているノードはそのまま残り、増えた分だけ外へ足される。 */
+function expandCurrent(){
+  const g=S.graph; if(!g)return;
+  const fresh=generateMap({seedType:g.seedType,seedKey:g.seedKey,viewType:g.viewType,
+    genreId:g.genreId,randomSeed:g.randomSeed||null,parentMapId:g.parentMapId,randomOn:g.randomOn});
+  const byId=new Map(fresh.nodes.map(n=>[n.id,n]));
+  const keep=g.nodes.map(n=>byId.get(n.id)||n);
+  const kept=new Set(keep.map(n=>n.id));
+  const add=fresh.nodes.filter(n=>!kept.has(n.id));
+  const cores=[...keep.filter(n=>n.tier==='core'),...add.filter(n=>n.tier==='core')];
+  const rands=[...keep.filter(n=>n.tier==='random'),...add.filter(n=>n.tier==='random')];
+  fresh.nodes=[...cores,...rands].slice(0,fresh.nodeLimit);
+  fresh.coreCount=Math.min(cores.length,fresh.nodes.length);
+  fresh.ghosts=Math.max(0,Math.min(MAX_NODES-fresh.nodes.length,(fresh.available||0)-fresh.nodes.length));
+  fresh.revealed=Math.min(fresh.nodes.length,Math.max(g.revealed,g.nodes.length));
+  fresh.id=g.id; fresh.createdAt=g.createdAt;
+  installMap(fresh,{silent:true,noLog:true});
+}
+/* SC-10 リワード */
+function openRewardDialog(){
+  rail('reward');
+  modal(`<h2 class="h-title">30分だけ全部見る</h2>
+    <p class="t-body">30秒の広告を見ると、このマップを 100 件（＋70）で 30 分間表示します。本日あと ${3-S.rewardUses} 回。</p>
+    <button class="btn-primary" data-act="watch">広告を見る</button>
+    <button class="btn-ghost" data-act="close">やめておく</button>`,
+    b=>{ if(b==='close')closeModal();
+      if(b==='watch'){
+        modal(`<div style="height:150px;border-radius:14px;background:#101017;border:1px dashed #2F2F40;display:grid;place-items:center;
+          font-family:var(--f-mono);font-size:12px;color:#55555F">AdMob rewarded — 再生中</div>
+          <div style="height:4px;border-radius:2px;background:#2A2A38;overflow:hidden"><div id="adbar" style="height:100%;width:0;background:var(--accent);transition:width 2.6s linear"></div></div>
+          <p class="t-cap mono" id="adcount">30 秒</p>`);
+        requestAnimationFrame(()=>{$('#adbar').style.width='100%'});
+        let s=30;const iv=setInterval(()=>{s-=11;if(s<0)s=0;const el=$('#adcount');if(el)el.textContent=s+' 秒'},900);
+        setTimeout(()=>{clearInterval(iv);closeModal();grantReward()},2700);
+      }});
+}
+function grantReward(){
+  S.rewardUses++; S.rewardUntil=Date.now()+30*60*1000;
+  if(S.graph)expandCurrent();
+  toast('30分間 100 件に解放しました'); tickReward();
+}
+function tickReward(){
+  const chip=$('#reward-chip');const left=S.rewardUntil-Date.now();
+  if(left<=0){chip.classList.remove('on');
+    const g=S.graph; S.rewardUntil=0;
+    if(g&&!isPro())buildGraph(g.seedType,g.seedKey,{viewType:g.viewType,genreId:g.genreId,silent:true,noLog:true});
+    return;}
+  chip.classList.add('on');
+  const m=Math.floor(left/60000),s=Math.floor(left%60000/1000);
+  chip.textContent='解放中 '+m+':'+String(s).padStart(2,'0');
+  setTimeout(tickReward,1000);
+}
+/* モーダル基盤 */
+function modal(html,handler){
+  $('#modal').innerHTML=html; $('#modal-scrim').classList.add('on');
+  $('#modal').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+    if(handler)handler(b.dataset.act,b); else if(b.dataset.act==='close')closeModal()};
+}
+function closeModal(){$('#modal-scrim').classList.remove('on');
+  rail(S.screen==='sc05'?(S.graph&&S.graph.seedType==='genre'?'genreGraph':'graph'):(S.tab==='home'?'home':S.tab))}
+$('#modal-scrim').onclick=e=>{if(e.target.id==='modal-scrim')closeModal()};
+
+function pickServiceModal(after){
+  modal(`<h2 class="h-title">どのアプリで聴きますか？</h2>
+    <p class="t-cap">一度だけ聞きます。選択は設定に保存され、次からは1タップで遷移します。</p>
+    <div class="svc-grid">${Object.keys(SERVICES).map(k=>`<button class="svc" data-act="${k}"><b>${SERVICES[k].name}</b>
+      <span class="t-cap">検索リンクで開く</span></button>`).join('')}</div>`,
+    a=>{if(SERVICES[a]){S.service=a;closeModal();renderSettings();toast(SERVICES[a].name+' を既定にしました');after&&after()}});
+}
+/* SC-14 画像共有（FR-17）: クライアント側で描くだけ。サーバー通信もリンクの永続化もない。 */
+const shareCfg={aspect:'square',names:false};
+function shareSheetHTML(){
+  const g=S.graph;
+  const chip=(k,l)=>`<button class="chip" data-asp="${k}" aria-pressed="${shareCfg.aspect===k}">${l}</button>`;
+  return `<h2 class="h-title">画像で共有</h2>
+    <div style="border-radius:16px;overflow:hidden;border:1px solid var(--hair);background:#0A0A0F">
+      <canvas id="share-cv" style="width:100%;display:block"></canvas></div>
+    <div class="chips">${chip('square','正方形 1:1')}${chip('story','縦長 9:16')}</div>
+    <button class="set-row" data-act="names" style="border:1px solid var(--hair);border-radius:14px">
+      <span class="grow">アーティスト名を入れる</span>
+      <span class="switch" aria-pressed="${shareCfg.names}"></span></button>
+    <p class="t-cap">名前は確定枠だけに付きます。${g?g.revealed:0} 件の表示中ノードをそのまま焼き込みます。</p>
+    <button class="btn btn-primary" data-act="share">画像を共有</button>
+    <button class="btn btn-ghost" data-act="save">画像を保存</button>`;
+}
+function openShare(){
+  openSheet('share',shareSheetHTML(),82);
+  const bind=()=>{ drawShare();
+    $('#sheet-body').onclick=e=>{
+      const b=e.target.closest('button'); if(!b)return;
+      if(b.dataset.asp){shareCfg.aspect=b.dataset.asp;$('#sheet-body').innerHTML=shareSheetHTML();bind();return}
+      if(b.dataset.act==='names'){shareCfg.names=!shareCfg.names;$('#sheet-body').innerHTML=shareSheetHTML();bind();return}
+      if(b.dataset.act==='share'){closeSheet();toast('OS の共有シートに PNG を渡します（デモでは開きません）')}
+      if(b.dataset.act==='save'){closeSheet();toast('写真ライブラリに保存します（デモでは保存しません）')}
+    };
+  };
+  bind();
+}
+function drawShare(){
+  const c=$('#share-cv'), g=S.graph; if(!c||!g)return;
+  const W=620, H=shareCfg.aspect==='story'?1102:620;
+  c.width=W; c.height=H; c.style.aspectRatio=W+'/'+H;
+  const x=c.getContext('2d');
+  x.fillStyle='#0A0A0F'; x.fillRect(0,0,W,H);
+  const vis=g.nodes.slice(0,g.revealed);
+  let ext=90; vis.forEach(n=>ext=Math.max(ext,Math.hypot(n.x,n.y)));
+  const k=Math.min(W*0.42,H*0.34)/ext;
+  x.save(); x.translate(W/2,H*0.54);
+  vis.forEach(n=>{ x.globalAlpha=n.tier==='core'?.45:.14; x.strokeStyle=n.tier==='core'?'#5C5C74':'#3A3A48'; x.lineWidth=1;
+    x.beginPath();x.moveTo(0,0);x.lineTo(n.x*k,n.y*k);x.stroke(); });
+  vis.forEach(n=>{ x.globalAlpha=n.tier==='core'?1:.62;
+    x.beginPath();x.arc(n.x*k,n.y*k,Math.max(2.4,n.rad*k),0,6.284);x.fillStyle=CAT_COLOR[n.a.cat];x.fill(); });
+  if(shareCfg.names){
+    x.font='500 13px "Noto Sans JP",sans-serif'; x.textAlign='center'; x.globalAlpha=.92; x.fillStyle='#F5F5F7';
+    vis.filter(n=>n.tier==='core').slice(0,18).forEach(n=>x.fillText(n.label,n.x*k,n.y*k+Math.max(2.4,n.rad*k)+14));
+  }
+  x.globalAlpha=1;x.beginPath();x.arc(0,0,20,0,6.284);x.fillStyle='#7C5CFF';x.fill();
+  x.restore();
+  x.fillStyle='#F5F5F7';x.font='700 34px "Zen Kaku Gothic New",sans-serif';x.textAlign='center';
+  x.fillText(g.seedName,W/2,H*0.13);
+  x.fillStyle='#8E8E9A';x.font='400 17px "Noto Sans JP",sans-serif';
+  x.fillText((g.viewType==='genre'?'同一ジャンルで ':'確定 '+g.coreCount+' ＋ '+(g.randomOn?'ランダム ':'類似度順 ')+Math.max(0,g.revealed-g.coreCount)+' の ')
+    +g.revealed+' 組を掘りました',W/2,H*0.13+34);
+  x.fillStyle='#B79CFF';x.font='700 16px "JetBrains Mono",monospace';x.fillText('D I G G R',W/2,H-38);
+}
+
+/* ============================================================
+   SC-03 ホーム / SC-04 検索
+   ============================================================ */
+const TODAY=['Radiohead','Fishmans','Aphex Twin','Alice Coltrane','My Bloody Valentine'].map(n=>BY_NAME[n]);
+const mapColor=m=>m.seedType==='genre'?CAT_COLOR[GENRES[m.seedKey].cat]:CAT_COLOR[(ARTISTS.find(a=>a.id===m.seedKey)||{cat:'rock'}).cat];
+function renderHome(){
+  const rec=$('#recent-row');
+  $('#sec-recent').style.display=S.maps.length?'flex':'none';
+  rec.innerHTML=S.maps.slice(0,10).map((m,i)=>`<button class="recent-card" data-i="${i}">
+    <span class="gdot" style="background:${mapColor(m)};width:11px;height:11px"></span>
+    <span class="nm">${m.seedName}</span>
+    <span class="t-cap mono">${m.viewType==='genre'?'♪ 同ジャンル':'人 関連'} · ${m.nodeIds.length}</span></button>`).join('');
+  rec.onclick=e=>{const b=e.target.closest('button');if(b)openSavedMap(S.maps[+b.dataset.i])};
+  const td=$('#today-seeds');
+  td.innerHTML=TODAY.map(a=>`<button class="seed-card" data-id="${a.id}">
+    <span class="avatar" style="background:${CAT_COLOR[a.cat]}">${initials(a.name)}</span>
+    <span style="flex:1;min-width:0"><b style="font-family:var(--f-display);font-size:15px;display:block">${a.name}${S.checked.has(a.id)?'<span class="ck">✓</span>':''}</b>
+    <span class="t-cap">${a.genres.map(g=>GENRES[g].name).join(' · ')}</span></span>
+    <span class="t-cap mono">${flag(a.country)}</span></button>`).join('');
+  td.onclick=e=>{const b=e.target.closest('button');if(b)buildGraph('artist',b.dataset.id)};
+  $('#home-ad').style.display=isPro()?'none':'flex';
+}
+/* 検索キー: 大文字小文字・ダイアクリティカル・全半角・カタカナ/ひらがな・記号と空白を吸収する */
+function normKey(s){
+  return (s||'').normalize('NFKD').replace(/[̀-ͯ]/g,'')
+    .replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60))
+    .toLowerCase().replace(/[\s'’`.,\-–—_/&・「」()]/g,'');
+}
+/* aliases（実装では artists.aliases 列）。読み・略称・英字表記の揺れを吸収する */
+const ALIASES={
+  'Radiohead':['レディオヘッド'],'Thom Yorke':['トムヨーク'],'The Smile':['ザスマイル'],
+  'My Bloody Valentine':['MBV','マイブラ','マイブラッディヴァレンタイン'],'Aphex Twin':['エイフェックスツイン','AFX'],
+  'Boards of Canada':['BoC','ボーズオブカナダ'],'Massive Attack':['マッシヴアタック','マッシブアタック'],
+  'Portishead':['ポーティスヘッド'],'The Jesus and Mary Chain':['JAMC','ジザメリ'],
+  'A Tribe Called Quest':['ATCQ'],'BADBADNOTGOOD':['BBNG'],'Nine Inch Nails':['NIN','ナインインチネイルズ'],
+  'Public Image Ltd':['PiL'],'Black Country, New Road':['BCNR'],'Yellow Magic Orchestra':['YMO','イエローマジックオーケストラ'],
+  'Björk':['bjork','ビョーク'],'Sigur Rós':['sigur ros','シガーロス'],'Ólafur Arnalds':['olafur arnalds','オーラヴル'],
+  'Jóhann Jóhannsson':['johann johannsson','ヨハンヨハンソン'],'Altın Gün':['altin gun'],'µ-Ziq':['mu-ziq','muziq'],
+  'Tyler, The Creator':['tyler the creator','タイラーザクリエイター'],"D'Angelo":['dangelo','ディアンジェロ'],
+  'Fishmans':['フィッシュマンズ'],'Cornelius':['コーネリアス','小山田圭吾'],'toe':['トー'],'tricot':['トリコ'],
+  'Lamp':['ランプ'],'Boris':['ボリス'],'MONO':['モノ'],'Nujabes':['ヌジャベス'],'Duster':['ダスター'],
+  'NUMBER GIRL':['ナンバーガール','ナンバガ'],'ZAZEN BOYS':['ザゼンボーイズ'],
+  '坂本龍一':['Ryuichi Sakamoto','サカモトリュウイチ','教授'],'細野晴臣':['Haruomi Hosono','ホソノハルオミ'],
+  '椎名林檎':['Sheena Ringo','シイナリンゴ'],'電気グルーヴ':['Denki Groove','デンキグルーヴ'],
+  '石野卓球':['Takkyu Ishino'],'羊文学':['Hitsujibungaku','ヒツジブンガク'],'カネコアヤノ':['Kaneko Ayano'],
+  '青葉市子':['Ichiko Aoba','アオバイチコ'],'中村佳穂':['Kaho Nakamura'],'折坂悠太':['Yuta Orisaka'],
+  '大貫妙子':['Taeko Onuki'],'山下達郎':['Tatsuro Yamashita'],'竹内まりや':['Mariya Takeuchi'],
+  '松原みき':['Miki Matsubara'],'坂本慎太郎':['Shintaro Sakamoto'],'七尾旅人':['Tavito Nanao'],
+  'くるり':['Quruli'],'スーパーカー':['Supercar'],'相対性理論':['Soutaiseiriron'],'王舟':['Oh Shu'],
+  'Susumu Yokota':['ヨコタススム'],'Ryoji Ikeda':['池田亮司','イケダリョウジ']
+};
+const SEARCH_KEYS={};
+ARTISTS.forEach(a=>{
+  SEARCH_KEYS[a.id]=[a.name,...(ALIASES[a.name]||[])].map(normKey).filter(Boolean);
+});
+/* ジャンルも日本語で引けるようにする */
+const GENRE_ALIASES={
+  rock:['ロック'],'alt-rock':['オルタナ','オルタナティブロック'],'art-rock':['アートロック'],
+  shoegaze:['シューゲイズ','シューゲイザー'],'dream-pop':['ドリームポップ'],'noise-rock':['ノイズロック'],
+  'math-rock':['マスロック'],'post-rock':['ポストロック'],'post-punk':['ポストパンク'],
+  'psych-rock':['サイケ','サイケデリックロック'],electronic:['エレクトロニック','電子音楽'],
+  idm:['アイディーエム'],techno:['テクノ'],'detroit-techno':['デトロイトテクノ'],
+  'ambient-techno':['アンビエントテクノ'],ambient:['アンビエント','環境音楽'],house:['ハウス'],
+  'uk-garage':['ガラージ','ユーケーガラージ'],'future-garage':['フューチャーガラージ'],
+  downtempo:['ダウンテンポ'],'trip-hop':['トリップホップ'],dub:['ダブ'],
+  hiphop:['ヒップホップ','ラップ'],'inst-hiphop':['インストヒップホップ'],'jazz-rap':['ジャズラップ'],
+  'abstract-hiphop':['アブストラクトヒップホップ'],jazz:['ジャズ'],'spiritual-jazz':['スピリチュアルジャズ'],
+  'modal-jazz':['モードジャズ'],fusion:['フュージョン'],'uk-jazz':['ユーケージャズ'],
+  'modern-classical':['現代音楽','モダンクラシカル'],minimalism:['ミニマル','ミニマルミュージック'],
+  neoclassical:['ネオクラシカル'],pop:['ポップ'],'art-pop':['アートポップ'],'city-pop':['シティポップ'],
+  'synth-pop':['シンセポップ'],jpop:['ジェイポップ','邦楽'],soul:['ソウル'],funk:['ファンク'],
+  'neo-soul':['ネオソウル'],rnb:['アールアンドビー','アンドビー'],afrobeat:['アフロビート'],
+  folk:['フォーク'],'acid-folk':['アシッドフォーク'],'freak-folk':['フリークフォーク'],
+  ssw:['シンガーソングライター'],experimental:['実験音楽','エクスペリメンタル'],
+  avant:['アヴァンギャルド','前衛'],noise:['ノイズ'],drone:['ドローン']
+};
+const GENRE_KEYS={};
+Object.values(GENRES).forEach(g=>{GENRE_KEYS[g.id]=[g.name,...(GENRE_ALIASES[g.id]||[])].map(normKey)});
+/* 一致の強さ: 先頭一致 > 語頭一致 > 部分一致。同点は代表度（popularity）順 */
+function matchScore(keys,q){
+  let best=0;
+  for(const k of keys){
+    if(k===q)return 4;
+    if(k.startsWith(q))best=Math.max(best,3);
+    else if(k.includes(q))best=Math.max(best,k.length-q.length<4?2:1);
+  }
+  return best;
+}
+function renderSug(q){
+  const list=$('#sug-list'), qn=normKey(q);
+  if(!qn){
+    list.innerHTML=`<p class="t-cap" style="padding:14px 16px 8px">人気のシード</p>`+
+      TODAY.concat([BY_NAME['坂本龍一'],BY_NAME['J Dilla'],BY_NAME['Burial']]).map(a=>rowHTML(a,'')).join('');
+    S.sugTop=null;
+  }else{
+    const qa=ARTISTS.map(a=>({a,s:matchScore(SEARCH_KEYS[a.id],qn)})).filter(x=>x.s>0)
+      .sort((x,y)=>y.s-x.s||y.a.pop-x.a.pop).map(x=>x.a);
+    const qg=Object.values(GENRES).map(g=>({g,s:matchScore(GENRE_KEYS[g.id],qn),n:genreMembers(g.id).length}))
+      .filter(x=>x.s>0&&x.n>0).sort((x,y)=>y.s-x.s||y.n-x.n).map(x=>x);
+    S.sugTop=qa[0]?{type:'artist',key:qa[0].id}:(qg[0]?{type:'genre',key:qg[0].g.id}:null);
+    if(!qa.length&&!qg.length){
+      // 「もしかして」: 先頭2文字が一致するものを代表度順に拾う
+      const near=ARTISTS.map(a=>({a,k:SEARCH_KEYS[a.id]}))
+        .filter(x=>x.k.some(k=>k.slice(0,2)===qn.slice(0,2)))
+        .sort((x,y)=>y.a.pop-x.a.pop).slice(0,4).map(x=>x.a);
+      list.innerHTML=`<div style="padding:28px 24px 12px;text-align:center;display:flex;flex-direction:column;gap:8px">
+          <p class="t-body">「${q}」に一致するアーティストがありません</p>
+          <p class="t-cap">読み・略称・英字表記でも探せます（例: マイブラ / YMO / bjork）。</p></div>`
+        +(near.length?`<p class="t-cap" style="padding:6px 16px">もしかして</p>`+near.map(a=>rowHTML(a,'')).join(''):'');
+      bindRows(); return;
+    }
+    list.innerHTML=
+      (qa.length?`<p class="t-cap" style="padding:12px 16px 6px">アーティスト <span class="mono">${qa.length}</span> 件</p>`:'')
+      +qa.slice(0,12).map(a=>rowHTML(a,q)).join('')
+      +(qa.length>12?`<p class="t-cap" style="padding:8px 16px">ほか ${qa.length-12} 件 — 文字を足すと絞り込めます</p>`:'')
+      +(qg.length?`<p class="t-cap" style="padding:12px 16px 6px">ジャンル</p>`:'')
+      +qg.slice(0,6).map(x=>`<button class="sug-row" data-g="${x.g.id}"><span class="gdot" style="background:${CAT_COLOR[x.g.cat]}"></span>
+        <span style="flex:1"><b style="font-weight:500;font-size:14px">${hl(x.g.name,q)}</b>
+        <span class="sub" style="display:block">第${genreDepth(x.g.id)}階層 · このジャンルに <span class="mono">${x.n}</span> 組</span></span></button>`).join('');
+  }
+  bindRows();
+  function hl(t,q){if(!q)return t;const i=normKey(t).indexOf(normKey(q));
+    if(i<0||normKey(t).length!==t.length)return t;   // 正規化で長さが変わる語はハイライトしない
+    return t.slice(0,i)+'<em>'+t.slice(i,i+q.length)+'</em>'+t.slice(i+q.length)}
+  function rowHTML(a,q){return `<button class="sug-row" data-id="${a.id}">
+    <span class="avatar" style="width:34px;height:34px;border-radius:10px;font-size:13px;background:${CAT_COLOR[a.cat]}">${initials(a.name)}</span>
+    <span style="flex:1;min-width:0"><b style="font-weight:500;font-size:14px">${hl(a.name,q)}</b>${S.checked.has(a.id)?'<span class="ck">✓</span>':''}
+    <span class="sub" style="display:block">${flag(a.country)} ${a.begin} · ${a.genres.slice(0,2).map(g=>GENRES[g].name).join(' / ')}</span></span></button>`}
+  function bindRows(){
+    list.onclick=e=>{const b=e.target.closest('button');if(!b)return;
+      $('#sc04').classList.remove('on');
+      if(b.dataset.id)buildGraph('artist',b.dataset.id); else buildGraph('genre',b.dataset.g);};
+  }
+}
+$('#btn-search').onclick=()=>{$('#sc04').classList.add('on');rail('sug');$('#sug-input').value='';
+  syncRandomSwitch();renderSug('');setTimeout(()=>$('#sug-input').focus(),40)};
+function syncRandomSwitch(){
+  $('#sw-random').setAttribute('aria-pressed',S.randomOn?'true':'false');
+  const r=$('#rail-random'); if(r)r.textContent=S.randomOn?'on':'off';
+}
+$('#sw-random-row').onclick=()=>{
+  S.randomOn=!S.randomOn; syncRandomSwitch();
+  if(S.tab==='settings')renderSettings();
+  toast(S.randomOn?'ランダム表示 ON — 外側は引くたびに変わります':'ランダム表示 OFF — 類似度順で表示します');
+};
+$('#sug-cancel').onclick=()=>{$('#sc04').classList.remove('on');rail('home')};
+let sugT=null;
+$('#sug-input').addEventListener('input',e=>{clearTimeout(sugT);const v=e.target.value.trim();sugT=setTimeout(()=>renderSug(v),300)});
+$('#sug-input').addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  clearTimeout(sugT); renderSug(e.target.value.trim());
+  if(S.sugTop){$('#sc04').classList.remove('on');
+    buildGraph(S.sugTop.type,S.sugTop.key);}
+});
+
+/* ============================================================
+   SC-11 マイディグ
+   ============================================================ */
+function renderHistory(){
+  const list=$('#hist-list'),note=$('#hist-limit');
+  const lim=isPro()?999:10;
+  if(S.histSeg==='maps'){
+    const items=S.maps.slice(0,lim);
+    list.innerHTML=items.length?items.map((m,i)=>`<button class="list-item" data-i="${i}">
+      <span class="avatar" style="width:38px;height:38px;border-radius:11px;font-size:13px;background:${mapColor(m)}">${m.viewType==='genre'?'♪':initials(m.seedName)}</span>
+      <span class="grow"><span class="nm">${m.parentMapId?'<span class="lineage">↳ 引き直し</span> ':''}${m.seedName}</span>
+      <span class="t-cap mono">${m.viewType==='genre'?'同ジャンル':'確定 '+m.coreCount+'＋ランダム '+(m.nodeIds.length-m.coreCount)} · ${m.nodeIds.length} 件 · ${new Date(m.at).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}</span></span>
+      <span class="t-cap">開く</span></button>`).join('')
+      :`<div style="padding:34px 8px;text-align:center;display:flex;flex-direction:column;gap:10px">
+        <p class="t-body">まだマップの記録はありません</p><p class="t-cap">検索タブでアーティストを1組選ぶと、生成したマップがここに残ります。</p></div>`;
+    note.innerHTML=(!isPro()&&S.maps.length>=10)?`<div class="limit-note">無料プランで保存できる履歴は 10 件までです。90 日アクセスのないマップは自動で消えます（保存したものは残ります）。
+      <button class="btn-ghost" data-act="pw" style="min-height:38px">Pro で無制限にする</button></div>`:'';
+  }else{
+    const arts=S.bookmarks.filter(k=>!k.startsWith('map:')).map(id=>ARTISTS.find(a=>a.id===id)).filter(Boolean);
+    const maps=S.bookmarks.filter(k=>k.startsWith('map:')).map(k=>S.maps.find(m=>m.id===k.slice(4))).filter(Boolean);
+    list.innerHTML=(maps.length?`<p class="t-cap" style="padding:2px 4px">マップ</p>`+maps.map(m=>`<div class="list-item">
+        <span class="avatar" style="width:38px;height:38px;border-radius:11px;font-size:13px;background:${mapColor(m)}">${m.viewType==='genre'?'♪':initials(m.seedName)}</span>
+        <span class="grow"><span class="nm">${m.seedName}</span><span class="t-cap mono">${m.nodeIds.length} 件 · ${m.id.slice(-6)}</span></span>
+        <button class="pill" data-open="${m.id}">開く</button><button class="pill" data-del="map:${m.id}">削除</button></div>`).join(''):'')
+      +(arts.length?`<p class="t-cap" style="padding:8px 4px 2px">アーティスト</p>`+arts.map(a=>`<div class="list-item">
+        <span class="avatar" style="width:38px;height:38px;border-radius:11px;font-size:13px;background:${CAT_COLOR[a.cat]}">${initials(a.name)}</span>
+        <span class="grow"><span class="nm">${a.name}${S.checked.has(a.id)?'<span class="ck">✓</span>':''}</span><span class="t-cap">${a.genres.map(g=>GENRES[g].name).join(' · ')}</span></span>
+        <button class="pill" data-dig="${a.id}">掘る</button><button class="pill" data-del="${a.id}">削除</button></div>`).join(''):'')
+      ||`<div style="padding:34px 8px;text-align:center;display:flex;flex-direction:column;gap:10px">
+        <p class="t-body">保存はまだありません</p><p class="t-cap">ノードを長押し、詳細シートの★、または ⋮ の「このマップを保存」から保存できます。</p></div>`;
+    note.innerHTML=(!isPro()&&S.bookmarks.length>=10)?`<div class="limit-note">無料プランのブックマークは 10 件までです。
+      <button class="btn-ghost" data-act="pw" style="min-height:38px">Pro で無制限にする</button></div>`:'';
+  }
+  list.onclick=e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.i!==undefined)openSavedMap(S.maps[+b.dataset.i]);
+    if(b.dataset.open){const m=S.maps.find(x=>x.id===b.dataset.open);if(m)openSavedMap(m)}
+    if(b.dataset.dig)buildGraph('artist',b.dataset.dig);
+    if(b.dataset.del){S.bookmarks=S.bookmarks.filter(x=>x!==b.dataset.del);renderHistory();paint()}};
+  note.onclick=e=>{if(e.target.closest('[data-act="pw"]'))openPaywall()};
+}
+$('#hist-seg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  S.histSeg=b.dataset.seg;$$('#hist-seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderHistory()};
+
+/* ============================================================
+   SC-12 設定
+   ============================================================ */
+function renderSettings(){
+  const v=$('#view-settings'); const planName={free:'Free',pro_monthly:'DIGGR Pro（月額）',pro_yearly:'DIGGR Pro（年額）'}[S.plan];
+  v.innerHTML=`
+    <div class="home-head" style="padding-bottom:2px"><h2 class="h-title">設定</h2></div>
+    <div class="sec"><h3 class="sec-head" style="padding:0 18px">アカウント</h3>
+      <div class="set-group">
+        <div class="set-row"><span class="grow">サインイン状態</span><span class="val">${S.signedIn||'匿名'}</span></div>
+        <button class="set-row" data-act="link"><span class="grow">Apple / Google と連携</span><span class="val">›</span></button>
+        <button class="set-row" data-act="signout"><span class="grow" style="color:var(--text-secondary)">サインアウト</span></button>
+      </div></div>
+    <div class="sec"><h3 class="sec-head" style="padding:0 18px">プラン</h3>
+      <div class="set-group">
+        <div class="set-row"><span class="grow">現在のプラン</span><span class="val">${planName}</span></div>
+        <button class="set-row" data-act="manage"><span class="grow">サブスクリプションの管理</span><span class="val">ストアへ ›</span></button>
+        <button class="set-row" data-act="restore"><span class="grow">購入を復元</span><span class="val">›</span></button>
+      </div></div>
+    <div class="sec"><h3 class="sec-head" style="padding:0 18px">音楽アプリ</h3>
+      <div class="set-group">
+        <button class="set-row" data-act="svc"><span class="grow">既定の音楽アプリ</span>
+          <span class="val">${S.service?SERVICES[S.service].name:'未設定'} ›</span></button>
+        <div class="set-row"><span class="grow">遷移前に確認する</span>
+          <button class="switch" role="switch" data-sw="confirmLaunch" aria-pressed="${S.confirmLaunch}"></button></div>
+      </div></div>
+    <div class="sec"><h3 class="sec-head" style="padding:0 18px">表示</h3>
+      <div class="set-group">
+        <div class="set-row"><span class="grow">テーマ</span><span class="val">ダーク（固定）</span></div>
+        <div class="set-row"><span class="grow">ランダム表示を混ぜる<span class="val" style="display:block">既定は OFF（類似度順）</span></span>
+          <button class="switch" role="switch" data-sw="randomOn" aria-pressed="${S.randomOn}"></button></div>
+        <div class="set-row"><span class="grow">ラベルを多く表示</span>
+          <button class="switch" role="switch" data-sw="labelDense" aria-pressed="${S.labelDense}"></button></div>
+        <div class="set-row"><span class="grow">エッジで関係タイプを示す</span>
+          <button class="switch" role="switch" data-sw="relColors" aria-pressed="${S.relColors}"></button></div>
+        <div class="set-row"><span class="grow">アニメーションを軽減</span>
+          <button class="switch" role="switch" data-sw="reduceMotion" aria-pressed="${S.reduceMotion}"></button></div>
+      </div></div>
+    <div class="sec"><h3 class="sec-head" style="padding:0 18px">データ</h3>
+      <div class="set-group">
+        <button class="set-row" data-act="cache"><span class="grow">キャッシュを削除</span><span class="val">24.6 MB</span></button>
+        <button class="set-row" data-act="clearhist"><span class="grow">履歴をすべて削除</span></button>
+        <button class="set-row" data-act="delete"><span class="grow" style="color:var(--error)">アカウントと全データを削除</span></button>
+      </div></div>
+    <div class="sec"><h3 class="sec-head" style="padding:0 18px">情報</h3>
+      <div class="set-group">
+        <button class="set-row"><span class="grow">利用規約</span><span class="val">›</span></button>
+        <button class="set-row"><span class="grow">プライバシーポリシー</span><span class="val">›</span></button>
+        <div class="set-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+          <span class="grow">データクレジット</span>
+          <p class="credits">このアプリの音楽データは、以下の
+パブリックドメイン（CC0）データセットに
+基づいています。
+
+  MusicBrainz
+  ListenBrainz
+  Discogs
+  Wikidata
+
+データを公開している各コミュニティに
+感謝します。</p>
+        </div>
+        <div class="set-row"><span class="grow">バージョン</span><span class="val">1.0.0 · music_v20260901</span></div>
+      </div></div>`;
+  v.onclick=e=>{
+    const sw=e.target.closest('[data-sw]');
+    if(sw){const k=sw.dataset.sw;S[k]=!S[k];renderSettings();startAnim();syncRail();syncRandomSwitch();return}
+    const a=e.target.closest('[data-act]')?.dataset.act; if(!a)return;
+    if(a==='link'){rail('link');modal(`<h2 class="h-title">アカウント連携</h2>
+      <p class="t-cap">機種変更時のデータ引き継ぎと課金の復元に使います。匿名のままでも全機能を利用できます。</p>
+      <button class="btn-primary" data-act="apple"> Sign in with Apple</button>
+      <button class="btn-ghost" data-act="google">Google で続ける</button>
+      <button class="btn-ghost" data-act="close" style="border:0">あとで</button>`,
+      k=>{if(k==='close')closeModal();else if(k){S.signedIn=k==='apple'?'Apple 連携済み':'Google 連携済み';closeModal();renderSettings();toast('連携しました')}});}
+    if(a==='signout'){S.signedIn=null;renderSettings();toast('サインアウトしました')}
+    if(a==='manage')toast('ストアの購読管理を開きます（デモでは遷移しません）');
+    if(a==='restore')toast('復元できる購入はありませんでした',true);
+    if(a==='svc')pickServiceModal();
+    if(a==='cache')toast('キャッシュを削除しました');
+    if(a==='clearhist'){S.maps=[];renderHome();renderHistory();toast('履歴を削除しました')}
+    if(a==='delete'){modal(`<h2 class="h-title" style="color:var(--error)">アカウントと全データを削除</h2>
+      <p class="t-body">履歴・ブックマーク・購入に紐づく権利情報をすべて削除します。この操作は取り消せません。</p>
+      <button class="btn-primary" data-act="yes" style="background:var(--error)">削除する</button>
+      <button class="btn-ghost" data-act="close">キャンセル</button>`,
+      k=>{if(k==='close')closeModal();
+        if(k==='yes'){S.maps=[];S.bookmarks=[];S.listened=new Set();S.checked=new Set();S.mapCache=new Map();S.plan='free';S.signedIn=null;S.service=null;
+          closeModal();renderHome();renderHistory();renderSettings();syncRail();switchTab('home');toast('削除しました。匿名で最初から使えます')}});}
+  };
+}
+
+/* ============================================================
+   タブ・レール・オンボーディング・初期化
+   ============================================================ */
+function switchTab(t){
+  S.tab=t; show('main');
+  $$('#tabbar .tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  $('#view-home').style.display=t==='home'?'flex':'none';
+  $('#view-history').style.display=t==='history'?'flex':'none';
+  $('#view-settings').style.display=t==='settings'?'flex':'none';
+  if(t==='history')renderHistory(); if(t==='settings')renderSettings();
+  rail(t==='home'?'home':t);
+}
+$('#tabbar').onclick=e=>{const b=e.target.closest('.tab');if(b)switchTab(b.dataset.tab)};
+$('#btn-settings').onclick=()=>switchTab('settings');
+function syncRail(){
+  $('#rail-plan').textContent=S.plan==='free'?'free':S.plan;
+  $('#sw-plan').setAttribute('aria-pressed',isPro()?'true':'false');
+  $('#sw-offline').setAttribute('aria-pressed',S.offline?'true':'false');
+  $('#sw-apifail').setAttribute('aria-pressed',S.apiFail?'true':'false');
+  $('#sw-motion').setAttribute('aria-pressed',S.reduceMotion?'true':'false');
+  $('#home-ad').style.display=isPro()?'none':'flex';
+  syncGraphChrome();
+}
+$('#sw-plan').onclick=()=>{
+  const up=!isPro(); S.plan=up?'pro_yearly':'free';
+  const g=S.graph;
+  if(g){ if(up)expandCurrent();
+    else buildGraph(g.seedType,g.seedKey,{viewType:g.viewType,genreId:g.genreId,silent:true,noLog:true}); }
+  syncRail();renderHistory();if(S.tab==='settings')renderSettings();
+  toast(up?'Pro 権利を付与しました（100 ノード / 確定枠 40）':'Free に戻しました（30 ノード / 確定枠 20）')};
+$('#sw-offline').onclick=()=>{S.offline=!S.offline;syncRail();$('#offline-bar').classList.toggle('on',S.offline);
+  toast(S.offline?'オフライン: キャッシュ済みグラフのみ閲覧できます':'オンラインに復帰しました',S.offline)};
+$('#sw-apifail').onclick=()=>{S.apiFail=!S.apiFail;syncRail();
+  if(S.apiFail&&S.screen==='sc05'){$('#g-empty').classList.add('on');rail('error')}else{$('#g-empty').classList.remove('on')}
+  toast(S.apiFail?'API 障害を再現します（新規取得が失敗します）':'API は復旧しました',S.apiFail)};
+$('#sw-motion').onclick=()=>{S.reduceMotion=!S.reduceMotion;syncRail();startAnim();
+  toast(S.reduceMotion?'アニメーションを軽減します':'アニメーションを有効にしました')};
+$('#btn-reset-demo').onclick=()=>{
+  Object.assign(S,{plan:'free',rewardUntil:0,rewardUses:0,service:null,signedIn:null,offline:false,apiFail:false,
+    randomOn:false,listened:new Set(),checked:new Set(),bookmarks:[],maps:[],graph:null,mapCache:new Map(),obPage:0,histSeg:'maps'});
+  S.filters={from:1940,to:2026,types:new Set(['listen','collab','member','influence','label']),country:'all',tier:'all',on:false};
+  closeSheet();closeModal();$('#reward-chip').classList.remove('on');$('#offline-bar').classList.remove('on');
+  syncRail();renderHome();show('sc01');rail('sc01');setTimeout(()=>{show('sc02');rail('sc02');renderOb()},1200);
+};
+
+const OB=[
+  {h:'手で動かせる、音楽の地図。',b:'好きなアーティストを1組入れるだけ。関連するアーティストが放射状に広がり、地図として手元に残ります。'},
+  {h:'10 件ずつ、あなたのペースで。',b:'ボタンを押すたびに 10 件ずつ増えます。内側は必ず出る「確定枠」。検索画面で「ランダム表示」をオンにすると外側が毎回入れ替わり、🎲 で引き直せます（既定はオフ＝類似度順）。'},
+  {h:'いつも使う音楽アプリは？',b:'「聴く」を押したときに開くアプリです。あとから設定で変更できます。DIGGR の中では音は鳴りません。'}
+];
+function renderOb(){
+  const p=S.obPage;
+  $('#ob-copy').innerHTML=`<h2 class="h-display">${OB[p].h}</h2><p class="t-body" style="color:var(--text-secondary)">${OB[p].b}</p>`
+    +(p===2?`<div class="svc-grid" style="margin-top:4px">${Object.keys(SERVICES).map(k=>`<button class="svc" data-svc="${k}" aria-pressed="${S.service===k}">
+      <b>${SERVICES[k].name}</b><span class="t-cap">検索リンクで開く</span></button>`).join('')}</div>`:'');
+  $('#ob-dots').innerHTML=[0,1,2].map(i=>`<span class="ob-dot ${i===p?'on':''}"></span>`).join('');
+  $('#ob-next').textContent=p===2?'はじめる':'次へ';
+  $('#ob-copy').onclick=e=>{const b=e.target.closest('[data-svc]');if(b){S.service=b.dataset.svc;renderOb()}};
+  drawOb(p);
+}
+function drawOb(p){
+  const c=$('#ob-canvas'),x=c.getContext('2d');
+  x.fillStyle='#14141C';x.fillRect(0,0,676,460);x.save();x.translate(338,230);
+  const N=p===0?16:26;
+  for(let i=0;i<N;i++){
+    const ang=i*2.39996+p, r=70+((i*37)%110)+(p===1&&i>=10?70:0);
+    const px=Math.cos(ang)*r*1.35,py=Math.sin(ang)*r;
+    const lk=p===1&&i>=10;
+    x.globalAlpha=lk?.22:.4;x.strokeStyle=lk?'#3A3A48':'#5C5C74';x.lineWidth=1;
+    x.beginPath();x.moveTo(0,0);x.lineTo(px,py);x.stroke();
+    x.globalAlpha=lk?.5:1;
+    x.beginPath();x.arc(px,py,lk?5:7+((i*13)%9),0,6.284);
+    if(lk){x.strokeStyle='#3A3A48';x.lineWidth=1.4;x.stroke()}
+    else{x.fillStyle=Object.values(CAT_COLOR)[i%8];x.fill()}
+  }
+  x.globalAlpha=1;x.beginPath();x.arc(0,0,20,0,6.284);x.fillStyle='#7C5CFF';x.fill();
+  if(p===2){x.fillStyle='#B79CFF';x.font='700 15px "JetBrains Mono",monospace';x.textAlign='center';
+    x.fillText('▶  外部アプリで再生', 0, 200)}
+  x.restore();
+}
+$('#ob-next').onclick=()=>{if(S.obPage<2){S.obPage++;renderOb()}else{switchTab('home');toast(S.service?SERVICES[S.service].name+' を既定にしました':'あとで音楽アプリを選べます')}};
+$('#ob-skip').onclick=()=>switchTab('home');
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if($('#modal-scrim').classList.contains('on'))closeModal();
+    else if(S.sheetType)closeSheet();
+    else if($('#sc04').classList.contains('on'))$('#sc04').classList.remove('on');
+    return;
+  }
+  if(S.screen==='sc05'&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'){
+    if(e.key==='+'||e.key==='=')zoomBy(1.3);
+    if(e.key==='-'||e.key==='_')zoomBy(1/1.3);
+    if(e.key==='0')centerOnSeed(true);
+  }});
+/* デモ台：実機フレームの表示倍率 */
+function setScale(s){
+  const d=$('#device'), w=d.parentElement;
+  d.style.transformOrigin='top center'; d.style.transform='scale('+s+')';
+  d.style.marginBottom=(844*(s-1))+'px'; w.style.width=(390*s)+'px';
+  $('#rail-scale').textContent=Math.round(s*100)+'%';
+  $$('.rail [data-scale]').forEach(b=>b.style.borderColor=(+b.dataset.scale===s)?'var(--accent)':'');
+  fitCanvas(); if(S.graph)paint();
+}
+document.querySelector('.rail').addEventListener('click',e=>{const b=e.target.closest('[data-scale]');if(b)setScale(+b.dataset.scale)});
+window.addEventListener('resize',()=>{fitCanvas();paint()});
+
+fitCanvas(); renderHome(); syncRail(); renderOb(); rail('sc01'); setScale(1); updateZoom(); syncRandomSwitch();
+setTimeout(()=>{show('sc02');rail('sc02')},1400);
+</script>

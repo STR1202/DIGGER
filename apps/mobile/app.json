@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "DIGGR",
+    "slug": "diggr",
+    "scheme": "diggr",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0A0F",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.diggr.mobile",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true,
+        "LSApplicationQueriesSchemes": ["spotify", "music", "itmss", "youtubemusic"]
+      }
+    },
+    "android": {
+      "package": "app.diggr.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0F"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "ios": { "deploymentTarget": "15.1" },
+          "android": { "minSdkVersion": 24 }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiBaseUrl": "https://api.diggr.app/v1"
+    }
+  }
+}
