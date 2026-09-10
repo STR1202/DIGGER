@@ -56,6 +56,26 @@ export function useGraphView(opts: Options, cb: GraphViewCallbacks): GraphView {
     setSnapshot({ scale: s, tx: x, ty: y });
   }, []);
 
+  /**
+   * 視点を動かす。
+   * ラベルの置き直し（commit）は動き終わってから行う。
+   * 動いている最中に確定させると、キャンバスが移動している途中でラベルだけ先に
+   * 目的地へ飛んでしまい、戻る動きが不自然に見えるため。
+   */
+  const animateTo = useCallback((s: number, x: number, y: number) => {
+    const config = { duration: 420, easing: Easing.out(Easing.cubic) };
+    scale.value = withTiming(s, config);
+    tx.value = withTiming(x, config);
+    ty.value = withTiming(y, config, (finished) => {
+      if (finished) runOnJS(commit)(s, x, y);
+    });
+  }, [scale, tx, ty, commit]);
+
+  /** 全体表示。地図がちょうど収まる倍率まで引いて中心に戻す。 */
+  const fitAll = useCallback(() => {
+    animateTo(initialScale, 0, 0);
+  }, [animateTo, initialScale]);
+
   const hit = useCallback(
     (sx: number, sy: number): LaidOutNode | 'ghost' | null => {
       const wx = (sx - width / 2 - tx.value) / scale.value;
@@ -85,7 +105,9 @@ export function useGraphView(opts: Options, cb: GraphViewCallbacks): GraphView {
   const onDoubleTap = useCallback((sx: number, sy: number) => {
     const h = hit(sx, sy);
     if (h && h !== 'ghost') cb.onDoubleTapNode(h.mbid);
-  }, [hit, cb]);
+    // 「全体表示」ボタンを廃止した分、空白のダブルタップで全体に戻す
+    else if (!h) fitAll();
+  }, [hit, cb, fitAll]);
 
   const onLongPress = useCallback((sx: number, sy: number) => {
     const h = hit(sx, sy);
@@ -142,25 +164,9 @@ export function useGraphView(opts: Options, cb: GraphViewCallbacks): GraphView {
     Gesture.Exclusive(doubleTap, longPress, singleTap),
   );
 
-  /**
-   * 視点を動かす。
-   * ラベルの置き直し（commit）は動き終わってから行う。
-   * 動いている最中に確定させると、キャンバスが移動している途中でラベルだけ先に
-   * 目的地へ飛んでしまい、戻る動きが不自然に見えるため。
-   */
-  const animateTo = useCallback((s: number, x: number, y: number) => {
-    const config = { duration: 420, easing: Easing.out(Easing.cubic) };
-    scale.value = withTiming(s, config);
-    tx.value = withTiming(x, config);
-    ty.value = withTiming(y, config, (finished) => {
-      if (finished) runOnJS(commit)(s, x, y);
-    });
-  }, [scale, tx, ty, commit]);
-
   return {
     scale, tx, ty, snapshot, interacting, gesture,
     centerOnSeed: (fit) => animateTo(fit ?? scale.value, 0, 0),
-    // 全体表示（空白のダブルタップ）
     zoomBy: (factor) => {
       const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, scale.value * factor));
       animateTo(next, tx.value * (next / scale.value), ty.value * (next / scale.value));
