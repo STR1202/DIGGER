@@ -238,6 +238,8 @@ v2.4 から番号を引き継ぐ。**取り消し線は廃止**、太字は本�
 本番では**月次パイプラインが事前計算**し、実行時は DB を引くだけ。
 `similarity.ts` は開発用データソース兼、重み変更時の回帰テスト基準として残す。
 
+各データソースの取得方法・ライセンス・レート制限は **§26.1** にまとめた。
+
 ## 17. 権利（ADR-16）
 
 - 商品は **サブスクリプション 2 種のみ**（`pro_monthly` / `pro_yearly`）。買い切りは廃止（D-4）
@@ -361,7 +363,82 @@ npm workspaces。ルートで `npm install` を 1 回。
 | 画面遷移 | **Expo Router** | ファイルベース |
 | 型 | **TypeScript strict**（`noUncheckedIndexedAccess` / `exactOptionalPropertyTypes`） | 配列アクセスと省略可能プロパティの取り違えを型で防ぐ |
 
-## 26. API
+## 26. 外部データソースと API
+
+DIGGR が触る外部サービスは **性質の異なる 2 種類**がある。混同すると規約と実装の両方を誤る。
+
+| | 月次パイプライン（オフライン） | 実行時（アプリから） |
+| --- | --- | --- |
+| 何をする | 類似度インデックスを作る | 聴くために外部アプリを開く |
+| 対象 | MusicBrainz / ListenBrainz / Discogs / Wikidata | Spotify / Apple Music / YouTube Music / iTunes Store |
+| 通信の主体 | AWS Batch（サーバー） | 端末 |
+| 認証 | サービスごとのトークン | **不要** |
+| 失敗したとき | 前回のスキーマで動き続ける（ブルーグリーン） | OS がブラウザへフォールバック |
+
+**アプリから外部の音楽 API を叩くことは一切ない。** 実行時に触る外部サービスは URL を開く先だけ。
+
+### 26.1 月次パイプラインが読むデータソース
+
+類似度の 5 信号（§16）はここから作る。**いずれも取得はダンプが主で、API は差分確認の用途に限る** —
+全件走査を API で行うとレート制限に必ず当たるため。
+
+| サービス | 取るもの | 信号 / 重み | 取り方 | ライセンス |
+| --- | --- | --- | --- | --- |
+| **MusicBrainz** | アーティストの正体（MBID・名前・国・活動年）と明示的な関係（メンバー / 共演 / レーベル） | `member` `collab` `label` / 0.15・0.05 | 月次フルダンプ `data.metabrainz.org/pub/musicbrainz/data/fullexport/` をローカル展開 | コアデータは **CC0** |
+| **ListenBrainz** | 共聴シグナル。同じ利用者が一緒に聴いているアーティストの共起 | `listen` / **0.50（最大）** | リスニングダンプ `data.metabrainz.org/pub/musicbrainz/listenbrainz/` | **CC0** |
+| **Discogs** | レーベル所属 | `label` / 0.05 | **月次 XML ダンプ** | ダンプは **CC0** |
+| **Wikidata** | 影響関係（`P737 influenced by`） | `influence` / 0.10 | SPARQL エンドポイントまたはダンプ | **CC0** |
+
+**MBID（MusicBrainz Identifier）がアプリ全体の主キー**。`maps.node_mbids`・`bookmarks`・`listened` も
+すべて MBID で持つので、他のデータソースは MBID に紐づけてから使う。
+
+#### 各サービスの制約（実装時に必ず確認すること）
+
+| サービス | 制約 |
+| --- | --- |
+| MusicBrainz | Web Service（`musicbrainz.org/ws/2/`）は **1 リクエスト / 秒**。User-Agent に連絡先を入れることが必須。**商用でライブデータフィード（レプリケーション）を使う場合は MetaBrainz との合意が要る** — DIGGR は有料サブスクリプションを持つため該当しうる |
+| ListenBrainz | 公開データの取得に認証は不要。利用者個別のエンドポイントのみトークンが要る |
+| Discogs | API（`api.discogs.com`）は認証時 60 req/分、未認証 25 req/分。**API の利用規約は商用利用に制限があるため、CC0 のダンプを使う** |
+| Wikidata | SPARQL エンドポイントに同時実行数とタイムアウトの制限がある。大量取得はダンプで行う |
+
+> **現状**: 上記のパイプラインは**未実装**（§32）。いまは `packages/core/src/data/mock.ts`
+> （247 アーティスト / 52 ジャンル / 236 関係）を同じインターフェイスで差し込んでいる。
+> `similarity.ts` は、パイプラインの重み係数を変えたときの回帰テストの基準として残す。
+
+### 26.2 Spotify ほか音楽サービス — **API は使わない**
+
+外部音楽アプリ連携（FR-23）は、**公開 URL を開くだけ**で実現している。
+
+| サービス | 開く URL |
+| --- | --- |
+| Spotify | `https://open.spotify.com/search/{artist}` |
+| Apple Music | `https://music.apple.com/search?term={artist}` |
+| YouTube Music | `https://music.youtube.com/search?q={artist}` |
+| iTunes Store | `itmss://itunes.apple.com/search?media=music&term={artist}` |
+
+これを選んだ理由は 4 つある。
+
+1. **API キー・OAuth・SDK が不要**。鍵の保管も更新も要らない
+2. **規約同意・アプリ審査・レート制限が無い**
+3. **Spotify Developer Terms に触れない。** 同規約は Spotify のデータを使って competing な
+   ディスカバリー機能を作ることを禁じているが、**DIGGR は Spotify からデータを一切取っていない**ので
+   そもそも適用されない。類似度は MusicBrainz / ListenBrainz / Discogs / Wikidata だけで作る
+4. **利用者がそのサービスの契約者でなくても導線が壊れない。** 未インストールなら OS が
+   ブラウザかストアへフォールバックする
+
+`itmss://` だけは開けない端末があるため、`Linking.canOpenURL` が false のとき
+`https://music.apple.com/search?term=` に落とす（[links.ts](../apps/mobile/src/services/links.ts)）。
+iOS は `LSApplicationQueriesSchemes` に 4 スキームを申告済み（§29）。
+
+### 26.3 採用しなかった API
+
+| API | 不採用の理由 |
+| --- | --- |
+| **iTunes Search API** | **発注者判断で不採用**（D-1）。試聴プレビュー（FR-06 / FR-24 / SC-17）ごと持たない |
+| **Spotify Web API** | §26.2 のとおり不要。キー管理と規約リスクを負わない |
+| **Last.fm API** | 共聴シグナルは ListenBrainz（CC0）で足りる。Last.fm は商用利用に個別の許諾が要る |
+
+## 27. 自前 API（アプリ ↔ サーバー）
 
 | メソッド | パス | 用途 |
 | --- | --- | --- |
@@ -378,14 +455,14 @@ npm workspaces。ルートで `npm install` を 1 回。
 アプリは既定で **`EXPO_PUBLIC_API_MODE=local`**（`@diggr/core` を端末内で直接呼ぶ）。
 **サーバーを立てずに全画面を触れる。**
 
-## 27. データベース
+## 28. データベース
 
 - **音楽領域** `music_v{n}`: 読み取り専用。月次パイプラインが新スキーマを作り、
   `search_path` の切り替えで**ブルーグリーン**に入れ替える
 - **アプリ領域** `public`: 読み書き。スキーマ切替の影響を受けない
 - 主要テーブル: `users` / `entitlements` / `maps` / `bookmarks` / `listened` / `purchase_events`
 
-## 28. ビルドと配布
+## 29. ビルドと配布
 
 | プロファイル | 用途 |
 | --- | --- |
@@ -403,7 +480,7 @@ npm workspaces。ルートで `npm install` を 1 回。
 **iOS は Mac + Xcode があれば無料 Apple ID の 7 日署名で実機確認まで可能**。
 Apple Developer Program（年 14,800 円）が要るのは TestFlight 以降（[MAC_SETUP.md](MAC_SETUP.md)）。
 
-## 29. ADR 一覧（本版で確定・改訂したもの）
+## 30. ADR 一覧（本版で確定・改訂したもの）
 
 | ADR | 決定 | 状態 |
 | --- | --- | --- |
@@ -417,14 +494,14 @@ Apple Developer Program（年 14,800 円）が要るのは TestFlight 以降（[
 
 # 第 VI 部　状態
 
-## 30. 実装済み
+## 31. 実装済み
 
 検索 / マップ生成 / 二層構造 / 段階表示 / 引き直し / 表示タイプ切替 /
 ピンチズームとパン / ラベルの重なり回避 / 絞り込み（年代・関係タイプ・国） /
 **ジャンルパネル（SC-07）** / 詳細シート / 外部アプリ連携 / チェック済み表示 /
 履歴 / 設定 / ペイウォールの導線 / API の主要エンドポイント / PostgreSQL スキーマ
 
-## 31. 未実装
+## 32. 未実装
 
 | 項目 | 備考 |
 | --- | --- |
@@ -437,7 +514,7 @@ Apple Developer Program（年 14,800 円）が要るのは TestFlight 以降（[
 | **OI-13 実機 100 ノードの描画性能検証** | **実機でのみ判定可能**。シミュレータは不可 |
 | ストア提出物 | アイコン / スプラッシュ / プライバシーポリシー / データ収集申告 / 年齢レーティング / スクリーンショット |
 
-## 32. 検証
+## 33. 検証
 
 | 層 | 手段 | 現状 |
 | --- | --- | --- |
