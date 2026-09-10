@@ -6,7 +6,7 @@ import { color, genreColor, radius, relationStyle, shadow } from '../theme/token
 import { Button } from '../components/Button';
 import { SERVICES, SERVICE_KEYS, type ServiceKey } from '../services/links';
 import type { Filters } from '../state/store';
-import { genreName, categoryOf } from '../data/genres';
+import { genreName, categoryOf, type Facet } from '../data/genres';
 
 /** ボトムシート（画面設計書 §4.5）。3 段のスナップは高さの割合で扱う。 */
 export function Sheet(props: {
@@ -114,6 +114,81 @@ export function ArtistSheet(props: {
           </View>
         </>
       ) : null}
+    </Sheet>
+  );
+}
+
+
+/** SC-07 ジャンルパネル。表示中の地図をジャンルという別の軸で読み直す。 */
+export function GenrePanel(props: {
+  readonly open: boolean;
+  readonly facets: readonly Facet[];
+  readonly highlight: readonly string[];
+  readonly onToggle: (genreId: string) => void;
+  readonly onClear: () => void;
+  readonly onDig: (genreId: string) => void;
+  readonly onClose: () => void;
+}): React.ReactElement {
+  const [expanded, setExpanded] = React.useState<string[]>([]);
+  const byParent = React.useMemo(() => {
+    const m = new Map<string | null, Facet[]>();
+    for (const f of props.facets) {
+      const list = m.get(f.parent) ?? [];
+      list.push(f);
+      m.set(f.parent, list);
+    }
+    for (const list of m.values()) list.sort((a, b) => b.count - a.count);
+    return m;
+  }, [props.facets]);
+
+  const rows: React.ReactElement[] = [];
+  const walk = (parent: string | null, depth: number): void => {
+    for (const f of byParent.get(parent) ?? []) {
+      const open = expanded.includes(f.id);
+      const on = props.highlight.includes(f.id);
+      rows.push(
+        <Pressable
+          key={f.id}
+          onPress={() => props.onToggle(f.id)}
+          style={[styles.genreRow, { paddingLeft: (depth - 1) * 18 }]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: on }}
+        >
+          <Pressable
+            onPress={() => setExpanded((e) => (open ? e.filter((x) => x !== f.id) : [...e, f.id]))}
+            hitSlop={8}
+            style={styles.caret}
+          >
+            <Text style={styles.caretText}>{f.hasChildren ? (open ? '▾' : '▸') : ''}</Text>
+          </Pressable>
+          <View style={[styles.gdot, { backgroundColor: genreColor[categoryOf(f.id)] }]} />
+          <Text style={[styles.genreName, on && styles.genreNameOn]} numberOfLines={1}>{f.name}</Text>
+          <Text style={styles.genreCount}>{f.count}</Text>
+        </Pressable>,
+      );
+      if (open) walk(f.id, depth + 1);
+    }
+  };
+  walk(null, 1);
+
+  const first = props.highlight[0];
+  return (
+    <Sheet open={props.open} onClose={props.onClose} heightRatio={0.72}>
+      <View style={styles.row}>
+        <Text style={[styles.title, { flex: 1 }]}>ジャンル（{props.facets.length}）</Text>
+        {props.highlight.length ? (
+          <Pressable onPress={props.onClear}><Text style={styles.link}>ハイライト解除</Text></Pressable>
+        ) : null}
+      </View>
+      <View>{rows}</View>
+      <Text style={styles.meta}>
+        親ジャンルを選ぶと子ジャンルも含めてハイライトします。階層は最大 3 段。
+      </Text>
+      <Button
+        label="このジャンルを掘る"
+        disabled={!first}
+        onPress={() => { if (first) props.onDig(first); }}
+      />
     </Sheet>
   );
 }
@@ -288,4 +363,15 @@ const styles = StyleSheet.create({
   planOn: { borderColor: color.accent },
   planName: { color: color.textPrimary, fontSize: 14, fontWeight: '700' },
   planPrice: { color: color.textPrimary, fontSize: 17, fontWeight: '700' },
+  genreRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#1A1A23',
+  },
+  caret: { width: 20, alignItems: 'center' },
+  caretText: { color: color.textSecondary, fontSize: 11 },
+  gdot: { width: 9, height: 9, borderRadius: 3 },
+  genreName: { flex: 1, color: color.textPrimary, fontSize: 14 },
+  genreNameOn: { color: color.accentGlow, fontWeight: '700' },
+  genreCount: { color: color.textSecondary, fontSize: 12 },
+  link: { color: color.accentGlow, fontSize: 13 },
 });

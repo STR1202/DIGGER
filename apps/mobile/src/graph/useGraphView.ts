@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
-  runOnJS, useSharedValue, withTiming, type SharedValue,
+  Easing, runOnJS, useSharedValue, withTiming, type SharedValue,
 } from 'react-native-reanimated';
 import type { LaidOutNode, Layout } from '@diggr/core';
 
@@ -142,16 +142,25 @@ export function useGraphView(opts: Options, cb: GraphViewCallbacks): GraphView {
     Gesture.Exclusive(doubleTap, longPress, singleTap),
   );
 
+  /**
+   * 視点を動かす。
+   * ラベルの置き直し（commit）は動き終わってから行う。
+   * 動いている最中に確定させると、キャンバスが移動している途中でラベルだけ先に
+   * 目的地へ飛んでしまい、戻る動きが不自然に見えるため。
+   */
   const animateTo = useCallback((s: number, x: number, y: number) => {
-    scale.value = withTiming(s, { duration: 420 });
-    tx.value = withTiming(x, { duration: 420 });
-    ty.value = withTiming(y, { duration: 420 });
-    commit(s, x, y);
+    const config = { duration: 420, easing: Easing.out(Easing.cubic) };
+    scale.value = withTiming(s, config);
+    tx.value = withTiming(x, config);
+    ty.value = withTiming(y, config, (finished) => {
+      if (finished) runOnJS(commit)(s, x, y);
+    });
   }, [scale, tx, ty, commit]);
 
   return {
     scale, tx, ty, snapshot, interacting, gesture,
     centerOnSeed: (fit) => animateTo(fit ?? scale.value, 0, 0),
+    // 全体表示（空白のダブルタップ）
     zoomBy: (factor) => {
       const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, scale.value * factor));
       animateTo(next, tx.value * (next / scale.value), ty.value * (next / scale.value));

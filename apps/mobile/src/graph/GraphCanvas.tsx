@@ -79,6 +79,20 @@ export function GraphCanvas(props: GraphCanvasProps): React.ReactElement {
   const colors = useNodeColors(layout.nodes, categoryOf);
 
   const visible = layout.nodes.slice(0, revealed);
+  // チェック済みバッジの「レ点」。ノードごとに Path を作らず 1 本にまとめる
+  const checkPath = useMemo(() => {
+    const p = Skia.Path.Make();
+    for (let i = 0; i < Math.min(revealed, layout.nodes.length); i++) {
+      const n = layout.nodes[i]!;
+      if (!checked.has(n.mbid)) continue;
+      const bx = n.x + n.r * 0.86 + 2.4;
+      const by = n.y - n.r * 0.86 - 2.4;
+      p.moveTo(bx - 2.1, by + 0.1);
+      p.lineTo(bx - 0.6, by + 1.9);
+      p.lineTo(bx + 2.2, by - 2);
+    }
+    return p;
+  }, [layout.nodes, revealed, checked]);
   const edges = useMemo(
     () => (map.viewType === 'genre' ? null : buildEdgePaths(layout.nodes, revealed)),
     [layout.nodes, revealed, map.viewType],
@@ -160,10 +174,10 @@ export function GraphCanvas(props: GraphCanvasProps): React.ReactElement {
               ) : null}
               {checked.has(n.mbid) ? (
                 <Group>
-                  <Circle cx={n.x + n.r * 0.86 + 2.4} cy={n.y - n.r * 0.86 - 2.4} r={4.6}
+                  <Circle cx={n.x + n.r * 0.86 + 2.4} cy={n.y - n.r * 0.86 - 2.4} r={5}
                     color={listened.has(n.mbid) ? color.success : color.textPrimary} />
-                  <Circle cx={n.x + n.r * 0.86 + 2.4} cy={n.y - n.r * 0.86 - 2.4} r={4.6}
-                    style="stroke" strokeWidth={1.1} color={color.bgBase} />
+                  <Circle cx={n.x + n.r * 0.86 + 2.4} cy={n.y - n.r * 0.86 - 2.4} r={5}
+                    style="stroke" strokeWidth={1.2} color={color.bgBase} />
                 </Group>
               ) : null}
               {selected === n.mbid ? (
@@ -173,6 +187,10 @@ export function GraphCanvas(props: GraphCanvasProps): React.ReactElement {
             </Group>
           );
         })}
+
+        {/* チェック済みのレ点（白丸の内側） */}
+        <Path path={checkPath} style="stroke" strokeWidth={1.5}
+          strokeCap="round" strokeJoin="round" color={color.bgBase} />
 
         {/* シード（中心） */}
         <Circle cx={0} cy={0} r={72}>

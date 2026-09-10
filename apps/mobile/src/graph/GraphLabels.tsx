@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, withTiming, type SharedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import type { Island, LabelPlacement } from '@diggr/core';
 import { color, genreColor } from '../theme/tokens';
 
@@ -15,6 +15,12 @@ export interface GraphLabelsProps {
   readonly offsetY: number;
   readonly interacting: SharedValue<number>;
   readonly checked: ReadonlySet<string>;
+  /** 現在の変形（共有値）。ラベルは配置済みの座標に差分変形をかけて追従する */
+  readonly liveScale: SharedValue<number>;
+  readonly liveTx: SharedValue<number>;
+  readonly liveTy: SharedValue<number>;
+  readonly centerX: number;
+  readonly centerY: number;
 }
 
 /**
@@ -23,14 +29,29 @@ export interface GraphLabelsProps {
  * 操作中は畳む（毎フレーム置き直すとフレームを落とすため）。
  */
 export function GraphLabels(props: GraphLabelsProps): React.ReactElement {
-  const { labels, islands, revealed, seedName, seedType, scale, offsetX, offsetY, interacting, checked } = props;
+  const {
+    labels, islands, revealed, seedName, seedType, scale, offsetX, offsetY, checked,
+    liveScale, liveTx, liveTy, centerX, centerY,
+  } = props;
 
-  const fade = useAnimatedStyle(() => ({
-    opacity: withTiming(interacting.value ? 0 : 1, { duration: 120 }),
-  }));
+  // 置いたときの変形（scale, tx, ty）と、いまの変形の差分だけを重ねる。
+  // ピンチ・パンの最中もラベルはノードに貼り付いたまま動き、
+  // 指を離した時点で親が置き直す（そのとき差分は 1 に戻る）。
+  const tx0 = offsetX - centerX;
+  const ty0 = offsetY - centerY;
+  const follow = useAnimatedStyle(() => {
+    const k = liveScale.value / scale;
+    return {
+      transform: [
+        { translateX: liveTx.value - k * tx0 },
+        { translateY: liveTy.value - k * ty0 },
+        { scale: k },
+      ],
+    };
+  });
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, fade]} pointerEvents="none">
+    <Animated.View style={[StyleSheet.absoluteFill, follow]} pointerEvents="none">
       {/* サブジャンルの島の名前（同じジャンルの地図） */}
       {islands.map((island) => (
         island.firstIndex < revealed ? (

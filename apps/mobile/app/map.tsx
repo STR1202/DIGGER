@@ -13,10 +13,10 @@ import { GraphLabels } from '../src/graph/GraphLabels';
 import { useGraphView } from '../src/graph/useGraphView';
 import { Button } from '../src/components/Button';
 import { ViewTypeSwitch } from '../src/components/ViewTypeSwitch';
-import { ArtistSheet, FilterSheet, Paywall } from '../src/sheets';
+import { ArtistSheet, FilterSheet, GenrePanel, Paywall } from '../src/sheets';
 import { useAppStore } from '../src/state/store';
 import { api } from '../src/api';
-import { categoryOf } from '../src/data/genres';
+import { categoryOf, facetsOf } from '../src/data/genres';
 import { color, motion, shadow } from '../src/theme/tokens';
 import { openInService, type ServiceKey } from '../src/services/links';
 import { purchases } from '../src/services/purchases';
@@ -42,6 +42,7 @@ export default function MapScreen(): React.ReactElement | null {
 
   const [sheetNode, setSheetNode] = useState<MapNode | null>(null);
   const [showFilter, setShowFilter] = useState(false);
+  const [showGenre, setShowGenre] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -53,6 +54,10 @@ export default function MapScreen(): React.ReactElement | null {
   }, [map]);
 
   const fit = layout ? fitScale(layout.extent, width, canvasHeight) : 1;
+  const facets = useMemo(
+    () => (map ? facetsOf(map.nodes.slice(0, revealed)) : []),
+    [map, revealed],
+  );
   const checkedSet = useMemo(() => new Set(checked), [checked]);
   const listenedSet = useMemo(() => new Set(listened), [listened]);
 
@@ -155,6 +160,14 @@ export default function MapScreen(): React.ReactElement | null {
     store().openMap(created);
   }, [map, prefs.randomOn]);
 
+  const digGenre = useCallback(async (genreId: string) => {
+    setShowGenre(false);
+    const next = await api.createMap({
+      seedType: 'genre', seedKey: genreId, viewType: 'genre', randomOn: prefs.randomOn,
+    });
+    store().openMap(next);
+  }, [prefs.randomOn]);
+
   const reroll = useCallback(async () => {
     if (!map?.canReroll) return;
     const next = await api.reroll(map.id);
@@ -202,6 +215,8 @@ export default function MapScreen(): React.ReactElement | null {
             scale={view.snapshot.scale}
             offsetX={width / 2 + view.snapshot.tx}
             offsetY={canvasHeight / 2 + view.snapshot.ty}
+            centerX={width / 2} centerY={canvasHeight / 2}
+            liveScale={view.scale} liveTx={view.tx} liveTy={view.ty}
             interacting={view.interacting} checked={checkedSet}
           />
         </View>
@@ -258,12 +273,12 @@ export default function MapScreen(): React.ReactElement | null {
             variant="locked" progress={1} onPress={() => setShowPaywall(true)} />
         )}
         <View style={styles.actions}>
+          <Button label={`ジャンル ${facets.length}`} variant="ghost" size="small" style={{ flex: 1 }}
+            onPress={() => setShowGenre(true)} />
           <Button label="絞込" variant="ghost" size="small" style={{ flex: 1 }}
             onPress={() => setShowFilter(true)} />
           <Button label="中心に戻る" variant="ghost" size="small" style={{ flex: 1 }}
             onPress={() => view.centerOnSeed()} />
-          <Button label="全体表示" variant="ghost" size="small" style={{ flex: 1 }}
-            onPress={() => view.reset(fit)} />
         </View>
       </View>
 
@@ -287,6 +302,13 @@ export default function MapScreen(): React.ReactElement | null {
         }}
         onClear={() => { store().setFilters({ on: false }); setShowFilter(false); }}
         onClose={() => setShowFilter(false)}
+      />
+      <GenrePanel
+        open={showGenre} facets={facets} highlight={highlight}
+        onToggle={(g) => store().toggleHighlight(g)}
+        onClear={() => store().clearHighlight()}
+        onDig={(g) => { void digGenre(g); }}
+        onClose={() => setShowGenre(false)}
       />
       <Paywall
         open={showPaywall} hidden={hidden} seedName={map.seedName}
