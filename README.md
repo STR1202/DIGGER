@@ -17,11 +17,14 @@ prototype/        仕様確認用の 1 ファイル HTML デモ（モックデ�
 
 ## 動かす
 
-> **動作確認のやり方**: [docs/VERIFY.md](docs/VERIFY.md)、iOS は [docs/IOS_VERIFY.md](docs/IOS_VERIFY.md)
+> **動作確認のやり方**: [docs/VERIFY.md](docs/VERIFY.md)
 >
-> **先に読む**: 実機で動かす手順は [docs/DEVICE_SETUP.md](docs/DEVICE_SETUP.md)（Android / EAS）、
-> Mac から iOS で確認する手順は [docs/MAC_SETUP.md](docs/MAC_SETUP.md)、
-> Mac 無しで iOS を出す手順は [docs/IOS_WITHOUT_MAC.md](docs/IOS_WITHOUT_MAC.md)。
+> **iOS**: Mac + Xcode があるなら [docs/MAC_SETUP.md](docs/MAC_SETUP.md)（実機まで無料）。
+> Mac が使えない場合は [docs/IOS_VERIFY.md](docs/IOS_VERIFY.md) と
+> [docs/IOS_WITHOUT_MAC.md](docs/IOS_WITHOUT_MAC.md)。
+>
+> **Android**: [docs/DEVICE_SETUP.md](docs/DEVICE_SETUP.md)（EAS でのクラウドビルド）。
+>
 > Expo CLI はパスに日本語が入っていると起動しないため、
 > このリポジトリは `C:\dev\diggr` のような ASCII のパスに置いてください（検証済み）。
 
