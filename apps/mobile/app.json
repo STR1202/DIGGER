@@ -13,7 +13,12 @@
       "bundleIdentifier": "app.diggr.mobile",
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
-        "LSApplicationQueriesSchemes": ["spotify", "music", "itmss", "youtubemusic"]
+        "LSApplicationQueriesSchemes": [
+          "spotify",
+          "music",
+          "itmss",
+          "youtubemusic"
+        ]
       }
     },
     "android": {
@@ -27,8 +32,12 @@
       [
         "expo-build-properties",
         {
-          "ios": { "deploymentTarget": "15.1" },
-          "android": { "minSdkVersion": 24 }
+          "ios": {
+            "deploymentTarget": "15.1"
+          },
+          "android": {
+            "minSdkVersion": 24
+          }
         }
       ]
     ],
@@ -36,7 +45,20 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiBaseUrl": "https://api.diggr.app/v1"
+      "apiBaseUrl": "https://api.diggr.app/v1",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "3a722d82-8b52-41bb-a0ae-3be347656c70"
+      }
+    },
+    "owner": "taiyo0029",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3a722d82-8b52-41bb-a0ae-3be347656c70"
     }
   }
 }

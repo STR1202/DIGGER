@@ -130,6 +130,29 @@ eas build --profile development --platform android
 | Generate a new Android Keystore? | **Y**（EAS が署名鍵を作って預かります） |
 | （既に鍵がある場合）Reuse? | Y |
 
+**初回は途中で次のメッセージが出て、ビルドが始まらずに終了します。**
+
+```
+Command must be re-run to pick up new updates configuration.
+```
+
+これはエラーではありません。EAS が `eas.json` の `channel` を見て、
+OTA 配信（EAS Update）に必要な設定を `app.json` と `package.json` に書き込んだので、
+**その新しい設定で走り直す必要がある**という通知です。書き込まれるのは次の 3 つです。
+
+| 追記される場所 | 内容 |
+| --- | --- |
+| `app.json` → `updates.url` | 更新の配信元（`https://u.expo.dev/<projectId>`） |
+| `app.json` → `runtimeVersion` | `{"policy": "appVersion"}`（ネイティブとの互換判定） |
+| `package.json` | `expo-updates` |
+
+対処は **同じコマンドをもう一度実行するだけ**です。
+
+```powershell
+npm install                                            # expo-updates を取り込む
+eas build --profile development --platform android     # 2 回目でビルドが始まる
+```
+
 ビルドはブラウザで進行を見られます。完了すると
 
 - ターミナルに APK の **ダウンロード URL** と **QR コード**
@@ -275,7 +298,8 @@ Android で描画とジェスチャを確認しておけば、iOS 固有で問�
 | ジェスチャが効かない | `app/_layout.tsx` の `GestureHandlerRootView` が最上位にあるか確認 |
 | 端末が開発サーバーを見つけない | 同じ Wi-Fi か確認 →ダメなら `--tunnel` |
 | `adb devices` に出ない | USB デバッグ未許可、またはケーブルが充電専用。端末側のダイアログで「このパソコンを許可」 |
-| EAS ビルドが `git` エラーで止まる | 手順 2-A ③ のコミットが未実施 |
+| `Command must be re-run to pick up new updates configuration.` | エラーではない。EAS が `app.json`（`updates.url` / `runtimeVersion`）と `package.json`（`expo-updates`）を書き足したので、`npm install` してから同じコマンドを再実行する |
+| EAS ビルドが `git` エラーで止まる | 手順 2-A ③ のコミットが未実施。`app.json` などが書き変わったら再度 `git add -A && git commit` してから投げる |
 | ビルドは通るが端末でインストールできない | 「提供元不明のアプリ」の許可、または端末のストレージ不足 |
 
 ログの取り方
