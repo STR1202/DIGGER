@@ -1,5 +1,9 @@
 # Mac で確認する手順
 
+> **注意**: 使用中の Mac が Xcode に対応していない場合、この手順は使えません。
+> Mac 無しで iOS を進める方法は [IOS_WITHOUT_MAC.md](IOS_WITHOUT_MAC.md) を参照してください。
+> この文書は、Xcode 16 が動く Mac が用意できた場合の手順です。
+
 Windows 側の作業は GitHub（`https://github.com/STR1202/DIGGER`）に push 済みです。
 Mac ではそれを clone して動かします。**シミュレータなら Apple の有料登録は不要**、
 実機も無料 Apple ID で 7 日間有効な署名が使えます。

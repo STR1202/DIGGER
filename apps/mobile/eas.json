@@ -27,6 +27,9 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
       }
     },
     "production": {
@@ -38,10 +41,29 @@
       "android": {
         "buildType": "app-bundle"
       },
+      "autoIncrement": true,
+      "ios": {
+        "resourceClass": "m-medium"
+      }
+    },
+    "testflight": {
+      "extends": "production",
+      "channel": "preview",
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_API_MODE": "local"
+      },
       "autoIncrement": true
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "//": "eas submit 実行時に対話で聞かれる。ここに書けば自動化できる",
+        "appleId": "sakataiyo18@gmail.com",
+        "ascAppId": "",
+        "appleTeamId": ""
+      }
+    }
   }
 }
