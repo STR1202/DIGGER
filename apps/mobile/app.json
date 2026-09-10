@@ -18,7 +18,8 @@
           "music",
           "itmss",
           "youtubemusic"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

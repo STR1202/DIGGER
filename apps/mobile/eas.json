@@ -54,6 +54,17 @@
         "EXPO_PUBLIC_API_MODE": "local"
       },
       "autoIncrement": true
+    },
+    "ios-simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_API_MODE": "local"
+      },
+      "ios": {
+        "simulator": true
+      }
     }
   },
   "submit": {
