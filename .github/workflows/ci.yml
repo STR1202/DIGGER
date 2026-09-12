@@ -1,0 +1,31 @@
+name: CI
+
+# 技術選定書 §9.3。PR と main への push の両方で走らせる。
+# 「ドメイン層（packages/core）の単体テストが必須チェック」がこのリポジトリの核心。
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: typecheck (core / api / mobile)
+        run: npm run typecheck
+
+      - name: core unit tests
+        run: npm run test
+
+      - name: 商用利用チェック（MusicBrainz タグ由来データを保持していないか）
+        run: npm run check:license --workspace @diggr/pipeline

@@ -1,8 +1,10 @@
 # DIGGR
 
 音楽の関連アーティストをネットワークグラフで掘るモバイルアプリ。
-設計は **[docs/DESIGN.md](docs/DESIGN.md)（マスター版 v3.0）** が正。
-v2.4 の 基本設計書 / 画面設計書 / 技術選定書 を統合し、以降の変更をすべて反映してある。
+設計は **[docs/DESIGN.md](docs/DESIGN.md)（マスター版 v3.0）** が土台。
+**[docs/spec/](docs/spec/) に v3.3 の画面設計書・基本設計書を追加してある**。
+実装が v3.0 の記述と食い違う場合は実装を正とする方針は変わらない。
+本番リリースに向けたチェックリストは会話ログ（またはチームの Issue）を参照。
 
 ## 何が入っているか
 
@@ -13,6 +15,10 @@ packages/core     ドメイン層（TypeScript、UI 非依存）
 apps/mobile       Expo / React Native アプリ（iOS・Android）
                   Skia 描画 + Reanimated ジェスチャ、Zustand、TanStack Query
 services/api      Fastify の API サーバー（基本設計書 §8）と PostgreSQL スキーマ
+pipeline/         月次データパイプラインの出発点（ライセンス境界のチェック・実データ疎通 CLI）
+infra/            本番環境一式（KAGOYA CLOUD VPS 向け、詳細は infra/README.md）
+legal/            プライバシーポリシー等の草案（要レビュー）
+e2e/              Maestro による E2E フロー
 prototype/        仕様確認用の 1 ファイル HTML デモ（モックデータの供給元）
 ```
 
@@ -79,14 +85,20 @@ Skia とジェスチャはネイティブモジュールなので、Expo Go で�
 実装済み: 検索・マップ生成・二層構造・段階表示・引き直し・表示タイプ切替・
 ピンチズームとパン・ラベルの重なり回避・絞り込み（年代／関係タイプ／国）・
 詳細シート・外部アプリ連携・チェック済み表示・履歴・設定・ペイウォールの導線・
+**ジャンルパネル（SC-07）・画像共有以外は SC-14 相当の下地・
+検索の二層化（FR-01 / FR-01b、グラフの無いアーティストはジャンル地図へ自動フォールバック）**・
 API サーバーの主要エンドポイント・PostgreSQL スキーマ。
 
-未実装（次の作業）:
+未実装（次の作業。優先度の付けは会話で共有した本番リリースの todo を参照）:
 
-- ジャンルパネル（SC-07）と画像共有（SC-14）
+- **画像共有（SC-14）の実描画・OS 共有シート連携**
+- **端末データストアを expo-sqlite へ移行**（v3.1）。現状は MMKV で履歴・ブックマーク・
+  チェック済みを永続化しているが、FTS5 によるオフライン検索・`synced` フラグでの
+  差分同期・SQL でのマイグレーション管理は無い
+- **Apple Music Feed を含む月次データパイプライン**（DuckDB・`uid`/`source`/`merged_into`
+  の分離、ADR-27）。`services/api` の SQL は `has_graph` 列を追加した以外は v2.x 相当のまま
 - RevenueCat / AdMob の実接続（いまはインターフェイスとスタブのみ）
 - 匿名 JWT の発行と保管（`/auth/anonymous` と SecureStore）
-- 月次データパイプライン（AWS Batch + DuckDB）と Terraform
 - i18n（日本語のみ。文言は各画面に直書き）
 - E2E テスト（Maestro）とスクリーンショットテスト
 

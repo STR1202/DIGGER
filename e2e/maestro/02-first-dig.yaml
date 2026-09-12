@@ -1,0 +1,17 @@
+# UC-01 初回ディグ。検索 → マップ表示 → 詳細シート → チェック済みまで。
+# 前提: オンボーディング完了済み（01-onboarding.yaml を先に流すか、既存状態で実行）。
+appId: app.diggr.mobile
+---
+- launchApp
+- tapOn: "アーティストを検索"
+- inputText: "Radiohead"
+- assertVisible: "Radiohead"
+- tapOn: "Radiohead"
+- assertVisible:
+    text: "確定.*"
+    optional: true
+- assertVisible: "＋ さらに"
+- tapOn: "＋ さらに"
+- extendedWaitUntil:
+    visible: "ジャンル"
+    timeout: 5000

@@ -1,0 +1,47 @@
+# TLS 終端・リバースプロキシ（技術選定書 §9.1、本番リリース計画書 §3.3）。
+# {$DIGGR_DOMAIN} は .env の DIGGR_DOMAIN（例: api.diggr.app）から展開される。
+{$DIGGR_DOMAIN} {
+	tls {$DIGGR_ACME_EMAIL}
+
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer-when-downgrade"
+		-Server
+	}
+
+	# 検索のインクリメンタル入力は緩めに、それ以外は厳しめに。
+	@search path /v1/search
+	rate_limit @search {
+		zone search {
+			key {remote_host}
+			events 120
+			window 1m
+		}
+	}
+	rate_limit {
+		zone default {
+			key {remote_host}
+			events 60
+			window 1m
+		}
+	}
+
+	reverse_proxy api:8080 {
+		health_uri /health
+		health_interval 10s
+		health_timeout 3s
+		lb_policy round_robin
+	}
+
+	# map_id・ユーザー識別子はログに出さない（本番リリース計画書 §3.3）。
+	log {
+		output file /data/access.log {
+			roll_size 100mb
+			roll_keep 5
+		}
+		format json
+	}
+}

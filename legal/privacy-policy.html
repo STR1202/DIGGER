@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>プライバシーポリシー | DIGGR</title>
+<style>
+  :root{color-scheme:dark}
+  body{background:#0A0A0F;color:#F5F5F7;font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;
+    max-width:720px;margin:0 auto;padding:48px 20px 96px;line-height:1.8}
+  h1{font-size:26px}
+  h2{font-size:18px;margin-top:40px;border-top:1px solid #23232F;padding-top:24px}
+  p,li{color:#C9C9D4;font-size:14.5px}
+  .updated{color:#8E8E9A;font-size:13px}
+  .draft{background:#2A2118;border:1px solid #5C4A2E;color:#FFC857;border-radius:12px;padding:14px 16px;font-size:13px;margin-bottom:32px}
+  a{color:#B79CFF}
+  code{background:#14141C;padding:1px 6px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="draft">
+  <strong>草案（レビュー未了）。</strong> このページは実装のたたき台であり、記載内容は
+  DIGGR の設計書（基本設計書・技術選定書）に基づく事実の下書きです。公開前に必ず
+  運営主体の名称・所在地・連絡先を実際の値に置き換え、弁護士等の専門家によるレビューを受けてください。
+</div>
+
+<h1>プライバシーポリシー</h1>
+<p class="updated">最終更新日: <code>[YYYY-MM-DD に置き換え]</code></p>
+
+<p>
+DIGGR（以下「本アプリ」）は、音楽アーティスト同士の関連性を地図として可視化する
+アプリケーションです。本ポリシーは、本アプリが取得する情報とその利用目的を説明します。
+</p>
+
+<h2>1. 取得する情報</h2>
+<ul>
+  <li><strong>匿名識別子</strong>: 初回起動時にアプリが発行する ID（<code>anonymous_id</code>）。
+    氏名・メールアドレス等の個人情報を含みません。</li>
+  <li><strong>Apple / Google アカウント連携情報（任意）</strong>: 連携を選んだ場合のみ、
+    各社が提供する識別子（sub）を受け取ります。氏名・メールアドレス本体は保持しません。</li>
+  <li><strong>利用状況</strong>: 検索履歴・生成した地図・ブックマーク・チェック済みアーティスト・
+    外部音楽アプリへの遷移記録。端末内のデータベースに保存され、アカウントに紐づけて
+    サーバーにも同期されます（オフライン利用のため）。</li>
+  <li><strong>購入情報</strong>: サブスクリプションの状態（プラン・有効期限）。決済情報そのもの
+    （カード番号等）は取得せず、Apple / Google のストア決済および RevenueCat 社が処理します。</li>
+  <li><strong>広告識別子</strong>: 広告配信のため、端末の広告識別子（IDFA / GAID）を
+    Google AdMob 経由で利用する場合があります。iOS では App Tracking Transparency の
+    同意を得た場合に限ります。同意しなくても本アプリの全機能をご利用いただけます。</li>
+  <li><strong>診断・クラッシュ情報</strong>: Sentry を通じて、アプリの異常終了時の
+    技術的情報（発生箇所・端末機種・OS バージョン）を収集します。</li>
+</ul>
+
+<h2>2. 利用目的</h2>
+<ul>
+  <li>本アプリの中核機能（アーティスト検索・地図生成・履歴の保存）の提供</li>
+  <li>サブスクリプションの権利判定</li>
+  <li>広告の配信および頻度制御</li>
+  <li>不具合の検知・修正</li>
+</ul>
+
+<h2>3. 第三者への提供・委託</h2>
+<p>以下の外部サービスに、必要な範囲でデータの処理を委託します。</p>
+<ul>
+  <li><strong>RevenueCat</strong>（課金・サブスクリプション管理）</li>
+  <li><strong>Google AdMob</strong>（広告配信、Google の
+    <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">プライバシーポリシー</a>が適用されます）</li>
+  <li><strong>Apple / Google</strong>（アカウント連携・アプリ内課金を選んだ場合）</li>
+  <li><strong>Sentry</strong>（クラッシュ・エラーの収集）</li>
+</ul>
+<p>
+本アプリが表示する音楽データ（アーティスト名・関連性・ジャンル）は、MusicBrainz・
+ListenBrainz・Discogs・Wikidata の公開データセット（CC0）および Apple Music Feed
+を基にしており、これらのサービスへ利用者個人の情報を送信することはありません。
+</p>
+
+<h2>4. データの保存期間</h2>
+<p>
+アカウントに紐づくデータは、アカウントが存在する限り保存されます。90 日間アクセスの
+無い地図データは自動的に削除されます（ブックマークしたものを除く）。
+</p>
+
+<h2>5. データの削除</h2>
+<p>
+設定画面の「アカウントと全データの削除」からいつでも削除を申請できます。
+アプリを削除できない状況にある方は <a href="./delete-account.html">こちらのページ</a>
+からも削除を申請できます。削除後の復元はできません。
+</p>
+
+<h2>6. お子様の利用について</h2>
+<p>
+本アプリは一般向けアプリであり、意図的に 13 歳未満のお子様から個人情報を収集しません。
+</p>
+
+<h2>7. お問い合わせ</h2>
+<p><code>[運営者名・住所・連絡先メールアドレスに置き換え]</code></p>
+
+<h2>8. 本ポリシーの変更</h2>
+<p>本ポリシーは予告なく変更されることがあります。重要な変更がある場合はアプリ内で通知します。</p>
+
+</body>
+</html>

@@ -5,7 +5,8 @@
   "workspaces": [
     "packages/*",
     "apps/*",
-    "services/*"
+    "services/*",
+    "pipeline"
   ],
   "engines": {
     "node": ">=20"
@@ -14,11 +15,13 @@
     "core:test": "npm run test --workspace @diggr/core",
     "core:typecheck": "npm run typecheck --workspace @diggr/core",
     "api:dev": "npm run dev --workspace @diggr/api",
+    "api:build": "npm run build --workspace @diggr/api",
     "mobile:start": "npm run start --workspace @diggr/mobile",
     "mobile:ios": "npm run ios --workspace @diggr/mobile",
     "mobile:android": "npm run android --workspace @diggr/mobile",
-    "typecheck": "npm run core:typecheck && npm run typecheck --workspace @diggr/api && npm run typecheck --workspace @diggr/mobile",
-    "test": "npm run core:test"
+    "pipeline:test": "npm run test --workspace @diggr/pipeline",
+    "typecheck": "npm run core:typecheck && npm run typecheck --workspace @diggr/api && npm run typecheck --workspace @diggr/mobile && npm run typecheck --workspace @diggr/pipeline",
+    "test": "vitest run"
   },
   "devDependencies": {
     "typescript": "~5.6.3"

@@ -1,0 +1,22 @@
+{
+  "name": "@diggr/pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "月次データパイプライン（基本設計書 §6.2）。CC0 4 ソース + Apple Music Feed の取得・正規化・類似度計算。実運用は VPS 上のバッチとして cron から起動する（infra/docker-compose.yml の pipeline サービス）。",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check:license": "vitest run src/__tests__/allowlist.test.ts",
+    "fetch:sample": "tsx src/cli/fetch-sample.ts"
+  },
+  "dependencies": {
+    "@diggr/core": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "~5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,119 @@
+# 本番構成（Plan B: VPS 1 台、技術選定書 §9.1・本番リリース計画書 §3.3）。
+# API / PostgreSQL / Redis / ルーティング / 月次パイプラインを 1 台に同居させる。
+# 初回起動: docker compose build && docker compose up -d
+# CI/CD 導入後の更新: docker compose pull api && docker compose up -d api
+name: diggr
+
+services:
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    networks: [diggr]
+
+  api:
+    # 初回は `docker compose build api` でこのリポジトリから直接ビルドする（GHCR は不要）。
+    # CI/CD（.github/workflows/deploy.yml）を組んだ後は、API_IMAGE を指定して
+    # `docker compose pull api` に切り替える。
+    build:
+      context: ..
+      dockerfile: services/api/Dockerfile
+    image: ${API_IMAGE:-diggr-api:local}
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      NODE_ENV: production
+      DATA_SOURCE: postgres
+      DATABASE_URL: postgres://diggr:${POSTGRES_PASSWORD}@postgres:5432/diggr
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      REVENUECAT_WEBHOOK_SECRET: ${REVENUECAT_WEBHOOK_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    mem_limit: 512m
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [diggr]
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: diggr
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: diggr
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../services/api/sql:/docker-entrypoint-initdb.d:ro
+    command: >
+      postgres -c shared_buffers=2GB -c max_connections=100
+    mem_limit: 6g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U diggr"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # PostgreSQL・Redis はホストへ公開しない（Compose 内部ネットワークのみ、本番リリース計画書 §3.2）。
+    networks: [diggr]
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [diggr]
+
+  # 月次バッチ。cron から `docker compose run --rm pipeline` で都度起動する（常駐しない）。
+  pipeline:
+    build:
+      context: ..
+      dockerfile: pipeline/Dockerfile
+    image: ${PIPELINE_IMAGE:-diggr-pipeline:local}
+    profiles: ["pipeline"]
+    environment:
+      DATABASE_URL: postgres://diggr:${POSTGRES_PASSWORD}@postgres:5432/diggr
+      APPLE_CATALOG_SEARCH: ${APPLE_CATALOG_SEARCH:-false}
+      MEDIA_SERVICES_KEY_PATH: /run/secrets/media_services_key
+    volumes:
+      - pipeline_workdir:/work
+      - ${MEDIA_SERVICES_KEY_FILE:-/dev/null}:/run/secrets/media_services_key:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [diggr]
+
+networks:
+  diggr:
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+  pipeline_workdir:

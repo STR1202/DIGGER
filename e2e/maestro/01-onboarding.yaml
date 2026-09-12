@@ -1,0 +1,14 @@
+# SC-02 オンボーディング → SC-03 検索画面までの初回起動フロー。
+# 実行: maestro test e2e/maestro/01-onboarding.yaml
+appId: app.diggr.mobile
+---
+- launchApp:
+    clearState: true
+- assertVisible: "音楽の地図を、"
+- tapOn: "次へ"
+- assertVisible: "タップして読み、"
+- tapOn: "次へ"
+- assertVisible: "普段どこで聴きますか？"
+- tapOn: "Spotify"
+- tapOn: "始める"
+- assertVisible: "アーティストを検索"

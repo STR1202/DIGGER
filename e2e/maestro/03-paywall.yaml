@@ -1,0 +1,17 @@
+# UC-02 の入口確認: 段階表示を上限まで進めるとペイウォールへの導線が出る。
+# Free プランの既定（30 件上限）を前提にする。
+appId: app.diggr.mobile
+---
+- launchApp
+- tapOn: "アーティストを検索"
+- inputText: "Radiohead"
+- tapOn: "Radiohead"
+- repeat:
+    times: 3
+    commands:
+      - tapOn: "＋ さらに"
+- assertVisible: "もっとディグる"
+- tapOn: "もっとディグる"
+- assertVisible: "隠れています"
+- assertVisible: "利用規約"
+- assertVisible: "プライバシー"
