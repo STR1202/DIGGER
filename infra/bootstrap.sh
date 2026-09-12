@@ -2,15 +2,14 @@
 # VPS の初期セットアップ（技術選定書 §9.2・本番リリース計画書 §3.2）。
 # 「作り直しがいつでもできる」ことを目的にする。手で足した設定はここに書き戻す。
 #
-# 対象: KAGOYA CLOUD VPS（Ubuntu Server 24.04 LTS、6 vCPU / 8GB / 800GB NVMe プラン）。
-# KAGOYA はコントロールパネルで「ログイン用認証キー」を事前登録してからインスタンスを作る方式で、
-# 初期ログインは root ではなく `ubuntu` ユーザー（sudo 可・パスワードログインは最初から禁止）になる。
-# そのためこのスクリプトは ubuntu ユーザーから `sudo` 経由で実行する前提で、root 昇格を自分で行う。
-# 他社 VPS（root で直接ログインするタイプ）でも root のまま実行すれば同じように動く。
+# 対象: Xserver VPS（Ubuntu Server 24.04 LTS、6 vCPU / 8GB / 400GB SSD プラン）。
+# Xserver は契約・作成時に SSH キーを登録すると、初期ログインが root 直接になる
+# （KAGOYA 等の「ubuntu ユーザー + sudo」方式とは違う）。root で直接ログインしていても、
+# sudo 経由でも、どちらでもこのスクリプトはそのまま動く（自分で判定して root 昇格する）。
 #
 # 使い方:
-#   scp infra/bootstrap.sh ubuntu@<VPSのIP>:~/
-#   ssh ubuntu@<VPSのIP> 'DEPLOY_SSH_PUBKEY="$(cat ~/.ssh/authorized_keys)" bash bootstrap.sh'
+#   scp infra/bootstrap.sh root@<VPSのIP>:~/
+#   ssh root@<VPSのIP> 'bash bootstrap.sh'
 # 冪等（再実行しても壊れない）。
 set -euo pipefail
 
@@ -34,16 +33,32 @@ if ! id -u "$DEPLOY_USER" >/dev/null 2>&1; then
   usermod -aG sudo "$DEPLOY_USER"
 fi
 install -d -m 700 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "/home/$DEPLOY_USER/.ssh"
-# 未指定なら、いま SSH で入ってきたユーザー（KAGOYA の既定は ubuntu）の鍵をそのまま引き継ぐ。
-if [ -z "${DEPLOY_SSH_PUBKEY:-}" ] && [ -n "${SUDO_USER:-}" ] && [ -f "/home/$SUDO_USER/.ssh/authorized_keys" ]; then
-  DEPLOY_SSH_PUBKEY="$(cat "/home/$SUDO_USER/.ssh/authorized_keys")"
+# 未指定なら、いま使っている鍵を引き継ぐ。sudo 経由（KAGOYA の ubuntu 等）なら
+# その元ユーザーの authorized_keys を、root 直接ログイン（Xserver 等）なら
+# root 自身の authorized_keys を見る。
+if [ -z "${DEPLOY_SSH_PUBKEY:-}" ]; then
+  if [ -n "${SUDO_USER:-}" ] && [ -f "/home/$SUDO_USER/.ssh/authorized_keys" ]; then
+    DEPLOY_SSH_PUBKEY="$(cat "/home/$SUDO_USER/.ssh/authorized_keys")"
+  elif [ -f /root/.ssh/authorized_keys ]; then
+    DEPLOY_SSH_PUBKEY="$(cat /root/.ssh/authorized_keys)"
+  fi
 fi
 if [ -n "${DEPLOY_SSH_PUBKEY:-}" ]; then
   echo "$DEPLOY_SSH_PUBKEY" > "/home/$DEPLOY_USER/.ssh/authorized_keys"
   chown "$DEPLOY_USER:$DEPLOY_USER" "/home/$DEPLOY_USER/.ssh/authorized_keys"
   chmod 600 "/home/$DEPLOY_USER/.ssh/authorized_keys"
 else
-  echo "!! DEPLOY_SSH_PUBKEY 未設定。/home/$DEPLOY_USER/.ssh/authorized_keys を後で必ず設定すること" >&2
+  echo "!! 公開鍵が見つからず $DEPLOY_USER に鍵を設定できませんでした。" >&2
+  echo "!! root ログインを無効化すると誰も入れなくなるため、ここで停止します。" >&2
+  echo "!! DEPLOY_SSH_PUBKEY='ssh-ed25519 AAAA...' を付けて再実行してください。" >&2
+  exit 1
+fi
+
+# root ログイン・パスワード認証を無効化するのは、$DEPLOY_USER で鍵ログインできることを
+# 確認した後にする（ここで失敗すると閉め出されるので、鍵ファイルの中身も検査する）。
+if [ ! -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ]; then
+  echo "!! /home/$DEPLOY_USER/.ssh/authorized_keys が空です。停止します。" >&2
+  exit 1
 fi
 
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config

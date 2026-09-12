@@ -2,36 +2,36 @@
 
 本番環境（Plan B: VPS 1 台、技術選定書 §9.1）の構成一式。
 
-## VPS: KAGOYA CLOUD VPS
+## VPS: Xserver VPS
 
-**採用プラン**: 8GB プラン（6 vCPU / 8GB RAM / 800GB NVMe SSD、月額 ¥3,410〜）。
+**採用プラン**: 8GB プラン（6 vCPU / 8GB RAM / 400GB SSD、月額 ¥3,850〜）。
 技術選定書 §9.1 が前提にしていた Hetzner CX33（4 vCPU / 8GB / 80GB、月額 $10〜15）と
 CPU・RAM は同等以上、ストレージは大幅に上回るため、**FR-01b（Apple カタログ取り込み）を
 有効化してもプラン変更が要らない**（想定 DB 容量は最大でも 55〜60GB、§7.3）。
 OS は Ubuntu Server 24.04 LTS。
 
-参考: [KAGOYA CLOUD VPS](https://www.kagoya.jp/vps/)、
-[SSH接続の設定マニュアル](https://support.kagoya.jp/vps/manual/index.php?action=artikel&cat=25&id=9&artlang=ja)
+参考: [Xserver VPS](https://vps.xserver.ne.jp/)、
+[SSH接続方法マニュアル](https://vps.xserver.ne.jp/support/manual/man_server_ssh_connect.php)
 
-### KAGOYA 固有の初期セットアップの違い
+### Xserver 固有の初期セットアップの違い
 
-他社 VPS（root で直接 SSH できるタイプ）と違い、KAGOYA は次の流れになる。
+KAGOYA 等の「非rootユーザー + sudo」方式と違い、Xserver は契約・インスタンス作成の画面で
+SSH キーを登録すると、**そのまま root で直接 SSH ログインできる**。
 
-1. コントロールパネルで **ログイン用認証キー**（公開鍵）を先に登録する
-2. インスタンス作成時にそのキーを選択する
-3. 作成後は **`ubuntu` ユーザー**（sudo 可）でログインする。root ログイン・パスワード認証は
-   最初から無効になっている
-
-`bootstrap.sh` はこの前提（`ubuntu` から `sudo` 経由で実行する）に合わせて自己昇格するので、
-そのまま使える。
+1. 契約時（またはOS再インストール時）の画面で SSH キーを新規生成 or 登録する
+2. 作成後は **`root`** で直接ログインする（パスワードでもログインできるが、鍵認証を推奨）
 
 ```bash
-scp infra/bootstrap.sh ubuntu@<VPSのIP>:~/
-ssh ubuntu@<VPSのIP> 'bash bootstrap.sh'
+scp infra/bootstrap.sh root@<VPSのIP>:~/
+ssh root@<VPSのIP> 'bash bootstrap.sh'
 ```
 
-`ubuntu` ユーザーが最初から持っている公開鍵は、そのまま `deploy` ユーザーへ引き継がれる
-（`DEPLOY_SSH_PUBKEY` を明示しなければ自動でそうなる）。
+`bootstrap.sh` は root 自身の公開鍵をそのまま `deploy` ユーザーへ引き継ぎ、
+**`deploy` に鍵を設定できたことを確認してから** root ログイン・パスワード認証を無効化する
+（鍵が見つからない場合は閉め出しを避けるためスクリプトの方が止まる）。
+
+> KAGOYA 等「ubuntu ユーザー + sudo」方式の VPS に戻す場合も、同じ `bootstrap.sh` が
+> sudo 経由の実行を自動検知してそのまま使える（`ssh ubuntu@<IP> 'bash bootstrap.sh'`）。
 
 ## セットアップの順番
 
