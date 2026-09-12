@@ -33,6 +33,12 @@ export interface Artist {
   /** 代表度 0.0–1.0（リスナー数の対数正規化） */
   readonly popularity: number;
   readonly genres: readonly string[];
+  /**
+   * 類似度グラフを持つか（基本設計書 v3.2 FR-01 の二層化）。
+   * 検索対象は全アーティストだが、グラフの有無は UI で区別しない。
+   * false のアーティストを掘ると、関連アーティスト地図の代わりにジャンル地図が黙って開く。
+   */
+  readonly hasGraph: boolean;
 }
 
 /** 類似度インデックスの 1 行（artist_similarity 相当） */
@@ -74,6 +80,11 @@ export interface DiggrMap {
   readonly canReroll: boolean;
   readonly randomOn: boolean;
   readonly randomSeed: number;
+  /**
+   * シード自身が類似度グラフを持つか。false は「関連アーティスト」表示タイプに切り替えられない
+   * （seedType='artist' のままジャンル地図が開いているケース）。
+   */
+  readonly seedHasGraph: boolean;
   readonly schemaVersion: string;
   readonly parentMapId: string | null;
   readonly createdAt: string;

@@ -62,6 +62,14 @@ CREATE TABLE IF NOT EXISTS listened (
   PRIMARY KEY (user_id, mbid)
 );
 
+-- 詳細シートを開いたアーティストの印（FR-31）。端末 DB の `checked` の写し。
+CREATE TABLE IF NOT EXISTS checked (
+  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  mbid       uuid NOT NULL,
+  checked_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, mbid)
+);
+
 CREATE TABLE IF NOT EXISTS purchase_events (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     uuid REFERENCES users(id) ON DELETE SET NULL,

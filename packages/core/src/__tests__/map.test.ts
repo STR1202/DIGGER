@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MockRepository } from '../dataset';
-import { buildMap, expandMap, FREE_ENTITLEMENT, MAX_NODES, PRO_ENTITLEMENT } from '../map';
+import { buildMap, expandMap, FREE_ENTITLEMENT, MAX_NODES, PRO_ENTITLEMENT, resolveViewType } from '../map';
 import type { Entitlement } from '../types';
 
 const repo = new MockRepository();
@@ -98,5 +98,34 @@ describe('buildMap', () => {
     for (const n of free.nodes) {
       expect(merged.nodes.some((m) => m.mbid === n.mbid)).toBe(true);
     }
+  });
+});
+
+describe('resolveViewType（FR-01 二層化）', () => {
+  it('グラフの無いアーティストで「関連」を頼んでも、黙ってジャンルに落ちる', () => {
+    expect(resolveViewType('related', 'artist', false)).toBe('genre');
+  });
+  it('グラフのあるアーティストは頼んだとおり', () => {
+    expect(resolveViewType('related', 'artist', true)).toBe('related');
+    expect(resolveViewType('genre', 'artist', true)).toBe('genre');
+  });
+  it('ジャンル起点は常にジャンル表示（グラフの有無に関係ない）', () => {
+    expect(resolveViewType('related', 'genre', false)).toBe('genre');
+    expect(resolveViewType('genre', 'genre', true)).toBe('genre');
+  });
+});
+
+describe('MockRepository の長尾アーティスト（グラフ無し）', () => {
+  it('検索対象には含まれるが hasGraph=false で返る', async () => {
+    const repo = new MockRepository();
+    const found = await repo.searchArtists('Pale Static', 5);
+    expect(found).toHaveLength(1);
+    expect(found[0]!.hasGraph).toBe(false);
+  });
+  it('自分のジャンルの地図には所属アーティストとして出てくる', async () => {
+    const repo = new MockRepository();
+    const a = (await repo.findArtistByName('Pale Static'))!;
+    const members = await repo.genreMembers(a.genres[0]!, 1000);
+    expect(members.some((m) => m.mbid === a.mbid)).toBe(true);
   });
 });

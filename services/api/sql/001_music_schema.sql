@@ -18,7 +18,10 @@ CREATE TABLE artists (
   end_year     int,
   popularity   real NOT NULL,          -- 0.0–1.0。突合の優先順にも使う
   discogs_id   bigint,
-  wikidata_id  text
+  wikidata_id  text,
+  -- 類似度グラフを持つか（基本設計書 v3.2 FR-01 の二層化）。false は検索・ジャンル地図の
+  -- 対象だが、関連アーティスト地図（artist_similarity / artist_pool）には行が無い。
+  has_graph    boolean NOT NULL DEFAULT true
 );
 CREATE INDEX artists_name_trgm ON artists USING gin (name gin_trgm_ops);
 CREATE INDEX artists_alias_trgm ON artists USING gin (aliases);

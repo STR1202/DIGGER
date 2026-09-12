@@ -36,6 +36,7 @@ export class PgRepository implements MusicRepository {
       endYear: (r['end_year'] as number | null) ?? null,
       popularity: Number(r['popularity'] ?? 0),
       genres: (r['genres'] as string[] | null) ?? [],
+      hasGraph: Boolean(r['has_graph'] ?? true),
     };
   }
 

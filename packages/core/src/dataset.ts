@@ -1,5 +1,6 @@
 import { buildGenreIndex, type GenreIndex } from './genres';
 import { MOCK_ARTISTS, MOCK_GENRES, MOCK_RELATIONS, SCENE_AFFINITY } from './data/mock';
+import { LONGTAIL_ARTISTS } from './data/longtail';
 import { similarTo, type SimilaritySource } from './similarity';
 import type { Artist, RelationType, SimilarityRow } from './types';
 
@@ -32,11 +33,16 @@ export class MockRepository implements MusicRepository {
 
   constructor() {
     this.index = buildGenreIndex(MOCK_GENRES);
-    this.artists = MOCK_ARTISTS.map((a) => ({
-      mbid: a.mbid, name: a.name, country: a.country,
-      beginYear: a.beginYear, endYear: a.endYear,
-      popularity: a.popularity, genres: a.genres,
-    }));
+    this.artists = [
+      ...MOCK_ARTISTS.map((a): Artist => ({
+        mbid: a.mbid, name: a.name, country: a.country,
+        beginYear: a.beginYear, endYear: a.endYear,
+        popularity: a.popularity, genres: a.genres, hasGraph: true,
+      })),
+      // グラフの無い長尾アーティスト（FR-01 の二層化）。検索・ジャンル地図には出るが、
+      // 類似度シグナルが無いので関連アーティスト地図の対象にはならない。
+      ...LONGTAIL_ARTISTS.map((a): Artist => ({ ...a, hasGraph: false })),
+    ];
     for (const a of MOCK_ARTISTS) this.scenes.set(a.mbid, a.scene);
     for (const [x, y, t] of MOCK_RELATIONS) {
       const k = relKey(x, y);

@@ -16,6 +16,19 @@ export const PRO_ENTITLEMENT: Omit<Entitlement, 'plan' | 'expiresAt'> = {
   nodeLimit: MAX_NODES, coreCap: 40, adsDisabled: true,
 };
 
+/**
+ * FR-01（v3.2 二層化）: 「関連アーティスト」で掘ろうとしても、シードにグラフが無ければ
+ * 断らずに黙って「同じジャンル」へ落とす。ジャンルそのものが起点のときは常にジャンル表示。
+ * UI から独立して検証できるよう、判断そのものをここに置く。
+ */
+export function resolveViewType(
+  requested: ViewType, seedType: SeedType, seedHasGraph: boolean,
+): ViewType {
+  if (seedType === 'genre') return 'genre';
+  if (requested === 'related' && !seedHasGraph) return 'genre';
+  return requested;
+}
+
 export interface BuildMapInput {
   readonly mapId: string;
   readonly seedType: SeedType;
@@ -29,6 +42,8 @@ export interface BuildMapInput {
   readonly randomSeed: number;
   readonly parentMapId: string | null;
   readonly schemaVersion: string;
+  /** シード（seedType='artist' のとき）が類似度グラフを持つか。既定は true。 */
+  readonly seedHasGraph?: boolean;
   readonly createdAt?: string;
   /** viewType='related' のとき: 類似度インデックス（スコア降順） */
   readonly similar?: readonly SimilarityRow[];
@@ -140,6 +155,7 @@ export function buildMap(input: BuildMapInput): DiggrMap {
     canReroll,
     randomOn,
     randomSeed: randomOn ? randomSeed : 0,
+    seedHasGraph: input.seedHasGraph ?? true,
     schemaVersion: input.schemaVersion,
     parentMapId: input.parentMapId,
     createdAt,
