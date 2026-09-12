@@ -1,5 +1,5 @@
 import type { DiggrMap, Entitlement } from '@diggr/core';
-import type { CreateMapRequest, DiggrApi, GenreFacet, SearchHit } from './types';
+import type { CreateMapRequest, DiggrApi, GenreFacet, SearchHit, SyncPayload } from './types';
 
 export class ApiError extends Error {
   constructor(readonly status: number, readonly code: string, message: string) {
@@ -76,5 +76,13 @@ export class HttpApi implements DiggrApi {
   async genreFacets(mapId: string): Promise<GenreFacet[]> {
     const r = await this.request<{ items: GenreFacet[] }>(`/maps/${mapId}/genres`);
     return r.items;
+  }
+
+  sync(pending: SyncPayload): Promise<{ accepted: number }> {
+    return this.request<{ accepted: number }>('/me/sync', { method: 'POST', body: JSON.stringify(pending) });
+  }
+
+  async deleteAccount(): Promise<void> {
+    await this.request<void>('/me', { method: 'DELETE' });
   }
 }

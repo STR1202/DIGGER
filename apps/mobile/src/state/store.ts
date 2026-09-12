@@ -4,26 +4,19 @@ import { MMKV } from 'react-native-mmkv';
 import { nextReveal, REVEAL_INITIAL, type DiggrMap, type Entitlement, type RelationType } from '@diggr/core';
 import { FREE_ENTITLEMENT } from '@diggr/core';
 import type { ServiceKey } from '../services/links';
+import {
+  addBookmark, cacheNodes, clearArtistsCache, clearHistory as dbClearHistory,
+  collectPendingSync, listBookmarks, listChecked, listHistory, listListened,
+  markChecked as dbMarkChecked, markListened as dbMarkListened, markSynced,
+  pruneHistory, removeBookmark, saveMap, touchMap, updateRevealed, wipeAllMaps,
+  wipeInteractions, type Bookmark, type MapRecord,
+} from '../db';
 
-const storage = new MMKV({ id: 'diggr' });
+export type { MapRecord, Bookmark };
 
-/** 履歴・ブックマークはノード集合ごと持つ（FR-02b）。乱数シードだけでは月次更新で別物になる。 */
-export interface MapRecord {
-  readonly id: string;
-  readonly seedType: DiggrMap['seedType'];
-  readonly seedKey: string;
-  readonly seedName: string;
-  readonly viewType: DiggrMap['viewType'];
-  readonly genreId: string | null;
-  readonly nodeMbids: readonly string[];
-  readonly coreCount: number;
-  readonly randomSeed: number;
-  readonly randomOn: boolean;
-  readonly schemaVersion: string;
-  readonly parentMapId: string | null;
-  readonly createdAt: string;
-  readonly revealed: number;
-}
+/** 端末に持たせる小さな設定値のみ MMKV（技術選定書 §3.3・ADR-25）。履歴・ブックマーク・
+ * チェック済みは expo-sqlite が正なので、ここでは永続化しない。 */
+const settings = new MMKV({ id: 'diggr-settings' });
 
 export interface Filters {
   from: number;
@@ -45,13 +38,15 @@ interface Prefs {
 }
 
 interface AppState {
+  /** 起動時に端末 DB から履歴・ブックマーク・チェック済みを読み終えたか */
+  hydrated: boolean;
   prefs: Prefs;
   entitlement: Entitlement;
   filters: Filters;
   /** 詳細を開いた／聴きに行ったアーティスト */
   checked: string[];
   listened: string[];
-  bookmarks: string[];
+  bookmarks: Bookmark[];
   history: MapRecord[];
 
   /** 表示中のマップ（永続化しない。履歴から復元する） */
@@ -60,6 +55,7 @@ interface AppState {
   selected: string | null;
   highlight: string[];
 
+  hydrate: () => Promise<void>;
   setPref: <K extends keyof Prefs>(key: K, value: Prefs[K]) => void;
   setEntitlement: (e: Entitlement) => void;
   setFilters: (f: Partial<Filters>) => void;
@@ -69,22 +65,19 @@ interface AppState {
   toggleHighlight: (genreId: string) => void;
   clearHighlight: () => void;
   markChecked: (mbid: string) => void;
-  markListened: (mbid: string) => void;
-  toggleBookmark: (key: string) => boolean;
+  markListened: (mbid: string, service: string) => void;
+  toggleBookmark: (targetType: Bookmark['targetType'], targetKey: string, targetName: string) => boolean;
+  reloadHistory: () => Promise<void>;
   clearHistory: () => void;
   wipeAll: () => void;
+  /** 端末に溜まった未同期の操作をサーバーへ送る（`/me/sync`、技術選定書 §3.5.3） */
+  syncNow: (send: (pending: Awaited<ReturnType<typeof collectPendingSync>>) => Promise<void>) => Promise<void>;
 }
-
-const toRecord = (m: DiggrMap, revealed: number): MapRecord => ({
-  id: m.id, seedType: m.seedType, seedKey: m.seedKey, seedName: m.seedName,
-  viewType: m.viewType, genreId: m.genreId, nodeMbids: m.nodes.map((n) => n.mbid),
-  coreCount: m.coreCount, randomSeed: m.randomSeed, randomOn: m.randomOn,
-  schemaVersion: m.schemaVersion, parentMapId: m.parentMapId, createdAt: m.createdAt, revealed,
-});
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
+      hydrated: false,
       prefs: {
         randomOn: false,
         service: null,
@@ -105,29 +98,43 @@ export const useAppStore = create<AppState>()(
       selected: null,
       highlight: [],
 
+      /** 起動時に一度だけ呼ぶ。端末 DB から履歴・ブックマーク・チェック済みを読み込む。 */
+      hydrate: async () => {
+        const [checked, listened, bookmarks, history] = await Promise.all([
+          listChecked(), listListened(), listBookmarks(), listHistory({ limit: 60 }),
+        ]);
+        set({ checked, listened, bookmarks, history, hydrated: true });
+      },
+
       setPref: (key, value) => set((s) => ({ prefs: { ...s.prefs, [key]: value } })),
       setEntitlement: (entitlement) => set({ entitlement }),
       setFilters: (f) => set((s) => ({ filters: { ...s.filters, ...f } })),
 
       openMap: (map, revealed) => {
         const r = Math.min(map.nodes.length, revealed ?? REVEAL_INITIAL);
-        set((s) => ({
-          current: map,
-          revealed: r,
-          selected: null,
-          highlight: [],
-          history: [toRecord(map, r), ...s.history.filter((h) => h.id !== map.id)].slice(0, 60),
-        }));
+        set({ current: map, revealed: r, selected: null, highlight: [] });
+        // 端末 DB への書き込みは非同期・非ブロッキング。ノード集合は不変なので
+        // 既存マップなら revealed だけ更新し、新規なら保存する（saveMap が判定する）。
+        void (async () => {
+          await saveMap(map, r);
+          await touchMap(map.id);
+          await cacheNodes(map.nodes);
+          await pruneHistory(60);
+          await get().reloadHistory();
+        })();
+      },
+
+      reloadHistory: async () => {
+        const history = await listHistory({ limit: 60 });
+        set({ history });
       },
 
       revealMore: (all = false) => {
         const { current, revealed } = get();
         if (!current) return;
         const next = nextReveal(revealed, current.nodes.length, all);
-        set((s) => ({
-          revealed: next,
-          history: s.history.map((h) => (h.id === current.id ? { ...h, revealed: next } : h)),
-        }));
+        set({ revealed: next });
+        void updateRevealed(current.id, next).then(() => get().reloadHistory());
       },
 
       select: (selected) => set({ selected }),
@@ -139,45 +146,66 @@ export const useAppStore = create<AppState>()(
         })),
       clearHighlight: () => set({ highlight: [] }),
 
-      markChecked: (mbid) =>
-        set((s) => (s.checked.includes(mbid) ? s : { checked: [...s.checked, mbid] })),
-      markListened: (mbid) =>
+      markChecked: (mbid) => {
+        set((s) => (s.checked.includes(mbid) ? s : { checked: [...s.checked, mbid] }));
+        void dbMarkChecked(mbid);
+      },
+      markListened: (mbid, service) => {
         set((s) => ({
           listened: s.listened.includes(mbid) ? s.listened : [...s.listened, mbid],
           checked: s.checked.includes(mbid) ? s.checked : [...s.checked, mbid],
-        })),
+        }));
+        void dbMarkListened(mbid, service);
+      },
 
-      toggleBookmark: (key) => {
+      toggleBookmark: (targetType, targetKey, targetName) => {
         const { bookmarks, entitlement } = get();
-        if (bookmarks.includes(key)) {
-          set({ bookmarks: bookmarks.filter((b) => b !== key) });
+        const already = bookmarks.some((b) => b.targetType === targetType && b.targetKey === targetKey);
+        if (already) {
+          set({ bookmarks: bookmarks.filter((b) => !(b.targetType === targetType && b.targetKey === targetKey)) });
+          void removeBookmark(targetType, targetKey);
           return false;
         }
         if (entitlement.plan === 'free' && bookmarks.length >= 10) return false;
-        set({ bookmarks: [key, ...bookmarks] });
+        const optimistic: Bookmark = {
+          id: `${targetType}:${targetKey}`, targetType, targetKey, targetName,
+          createdAt: new Date().toISOString(),
+        };
+        set({ bookmarks: [optimistic, ...bookmarks] });
+        void addBookmark(targetType, targetKey, targetName);
         return true;
       },
 
-      clearHistory: () => set({ history: [] }),
-      wipeAll: () =>
+      clearHistory: () => {
+        set({ history: get().history.filter((h) => get().bookmarks.some((b) => b.targetType === 'map' && b.targetKey === h.id)) });
+        void dbClearHistory().then(() => get().reloadHistory());
+      },
+
+      wipeAll: () => {
         set({
           checked: [], listened: [], bookmarks: [], history: [], current: null,
           revealed: REVEAL_INITIAL, selected: null, highlight: [],
           entitlement: FREE_ENTITLEMENT,
-        }),
+        });
+        void Promise.all([wipeAllMaps(), wipeInteractions(), clearArtistsCache()]);
+      },
+
+      syncNow: async (send) => {
+        const pending = await collectPendingSync();
+        if (!pending.bookmarks.length && !pending.checked.length && !pending.listened.length) return;
+        await send(pending);
+        await markSynced();
+      },
     }),
     {
       name: 'diggr-app',
       storage: createJSONStorage(() => ({
-        getItem: (k) => storage.getString(k) ?? null,
-        setItem: (k, v) => storage.set(k, v),
-        removeItem: (k) => storage.delete(k),
+        getItem: (k) => settings.getString(k) ?? null,
+        setItem: (k, v) => settings.set(k, v),
+        removeItem: (k) => settings.delete(k),
       })),
-      // 表示中のマップは持ち越さない（履歴から復元する）
-      partialize: (s) => ({
-        prefs: s.prefs, filters: s.filters, checked: s.checked, listened: s.listened,
-        bookmarks: s.bookmarks, history: s.history,
-      }),
+      // 端末 DB（expo-sqlite）が正になった項目は MMKV に二重で持たない。
+      partialize: (s) => ({ prefs: s.prefs, filters: s.filters }),
     },
   ),
 );

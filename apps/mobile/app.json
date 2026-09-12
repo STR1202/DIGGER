@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.diggr.mobile",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
         "LSApplicationQueriesSchemes": [
@@ -19,14 +20,19 @@
           "itmss",
           "youtubemusic"
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "この端末を横断した広告の最適化には使いません。同意しなくても全機能を利用できます。",
+        "NSPhotoLibraryAddUsageDescription": "生成した地図の画像を写真に保存するために使用します。"
       }
     },
     "android": {
       "package": "app.diggr.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0F"
-      }
+      },
+      "permissions": [
+        "com.google.android.gms.permission.AD_ID"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -39,6 +45,37 @@
           "android": {
             "minSdkVersion": 24
           }
+        }
+      ],
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": true
+        }
+      ],
+      "expo-secure-store",
+      "expo-localization",
+      "expo-apple-authentication",
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "この端末を横断した広告の最適化には使いません。同意しなくても全機能を利用できます。"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "生成した地図の画像を写真に保存するために使用します。",
+          "savePhotosPermission": "生成した地図の画像を写真に保存するために使用します。",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "userTrackingUsageDescription": "この端末を横断した広告の最適化には使いません。同意しなくても全機能を利用できます。"
         }
       ]
     ],

@@ -1,12 +1,16 @@
 import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import type { DiggrMap, MapNode, RelationType } from '@diggr/core';
 import { color, genreColor, radius, relationStyle, shadow } from '../theme/tokens';
+import { AdBanner } from '../components/AdBanner';
 import { Button } from '../components/Button';
 import { SERVICES, SERVICE_KEYS, type ServiceKey } from '../services/links';
 import type { Filters } from '../state/store';
 import { genreName, categoryOf, type Facet } from '../data/genres';
+
+// legal/README.md の手順でホスティングした後、実 URL に置き換える（RI-02）。
+const LEGAL_BASE_URL = process.env['EXPO_PUBLIC_LEGAL_BASE_URL'] ?? 'https://diggr.app/legal';
 
 /** ボトムシート（画面設計書 §4.5）。3 段のスナップは高さの割合で扱う。 */
 export function Sheet(props: {
@@ -112,6 +116,9 @@ export function ArtistSheet(props: {
                 style={{ flex: 1 }} onPress={() => props.onListen(k)} />
             ))}
           </View>
+          <View style={{ marginTop: 10 }}>
+            <AdBanner />
+          </View>
         </>
       ) : null}
     </Sheet>
@@ -200,6 +207,7 @@ export function Paywall(props: {
   readonly seedName: string;
   readonly onClose: () => void;
   readonly onPurchase: (plan: 'pro_monthly' | 'pro_yearly') => void;
+  readonly onRestore: () => void;
   readonly onWatchAd?: (() => void) | undefined;
 }): React.ReactElement {
   const [plan, setPlan] = React.useState<'pro_monthly' | 'pro_yearly'>('pro_yearly');
@@ -237,6 +245,13 @@ export function Paywall(props: {
         <Button label="🎬 広告を見て30分だけ解放" variant="ghost" size="medium"
           onPress={props.onWatchAd} />
       ) : null}
+      <View style={styles.legalRow}>
+        <Text style={styles.legalLink} onPress={props.onRestore}>購入を復元</Text>
+        <Text style={styles.legalDot}>・</Text>
+        <Text style={styles.legalLink} onPress={() => Linking.openURL(`${LEGAL_BASE_URL}/terms.html`)}>利用規約</Text>
+        <Text style={styles.legalDot}>・</Text>
+        <Text style={styles.legalLink} onPress={() => Linking.openURL(`${LEGAL_BASE_URL}/privacy-policy.html`)}>プライバシー</Text>
+      </View>
     </Sheet>
   );
 }
@@ -319,6 +334,39 @@ export function FilterSheet(props: {
   );
 }
 
+/** SC-14 画像共有。サーバー通信なし、クライアントの描画をそのまま渡す（FR-17）。 */
+export function ShareSheet(props: {
+  readonly open: boolean;
+  readonly imageUri: string | null;
+  readonly loading: boolean;
+  readonly onClose: () => void;
+  readonly onShare: () => void;
+  readonly onSave: () => void;
+}): React.ReactElement {
+  return (
+    <Sheet open={props.open} onClose={props.onClose} heightRatio={0.78}>
+      <Text style={styles.title}>画像で共有</Text>
+      <View style={shareStyles.preview}>
+        {props.loading || !props.imageUri ? (
+          <ActivityIndicator color={color.accentGlow} />
+        ) : (
+          <Image source={{ uri: props.imageUri }} style={shareStyles.previewImage} resizeMode="contain" />
+        )}
+      </View>
+      <Button label="🖼 画像を共有" disabled={!props.imageUri} onPress={props.onShare} />
+      <Button label="💾 画像を保存" variant="ghost" size="medium" disabled={!props.imageUri} onPress={props.onSave} />
+    </Sheet>
+  );
+}
+
+const shareStyles = StyleSheet.create({
+  preview: {
+    height: 260, borderRadius: 16, backgroundColor: color.bgElevated,
+    borderWidth: 1, borderColor: color.hairline, alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+  },
+  previewImage: { width: '100%', height: '100%' },
+});
+
 const styles = StyleSheet.create({
   scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
   sheet: {
@@ -374,4 +422,7 @@ const styles = StyleSheet.create({
   genreNameOn: { color: color.accentGlow, fontWeight: '700' },
   genreCount: { color: color.textSecondary, fontSize: 12 },
   link: { color: color.accentGlow, fontSize: 13 },
+  legalRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, flexWrap: 'wrap' },
+  legalLink: { color: color.textSecondary, fontSize: 11.5 },
+  legalDot: { color: color.textSecondary, fontSize: 11.5 },
 });

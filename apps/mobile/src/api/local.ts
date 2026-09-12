@@ -1,9 +1,9 @@
 import {
   buildMap, expandMap, FREE_ENTITLEMENT, MockRepository, newRandomSeed, PRO_ENTITLEMENT,
-  ancestors, depth as genreDepth,
+  ancestors, depth as genreDepth, resolveViewType,
   type DiggrMap, type Entitlement, type Plan,
 } from '@diggr/core';
-import type { CreateMapRequest, DiggrApi, GenreFacet, SearchHit } from './types';
+import type { CreateMapRequest, DiggrApi, GenreFacet, SearchHit, SyncPayload } from './types';
 
 /**
  * サーバーなしで動かすための実装。
@@ -67,7 +67,10 @@ export class LocalApi implements DiggrApi {
     const seedGenre = req.seedType === 'genre' ? index.get(req.seedKey) : null;
     if (!seedArtist && !seedGenre) throw new Error(`seed not found: ${req.seedKey}`);
 
-    const viewType = req.seedType === 'genre' ? 'genre' : req.viewType;
+    // FR-01（v3.2 二層化）: グラフの無いアーティストを「関連アーティスト」で掘ろうとした場合は、
+    // 断らずに黙ってジャンル地図（そのアーティストの主ジャンル起点）へ切り替える。
+    const seedHasGraph = seedArtist ? seedArtist.hasGraph : true;
+    const viewType = resolveViewType(req.viewType, req.seedType, seedHasGraph);
     const genreId = viewType === 'genre'
       ? (req.genreId ?? (seedGenre ? seedGenre.id : seedArtist!.genres[0]!))
       : null;
@@ -78,7 +81,7 @@ export class LocalApi implements DiggrApi {
     const members = viewType === 'genre' && genreId
       ? (await this.repo.genreMembers(genreId, 1000)).filter((a) => a.mbid !== req.seedKey)
       : undefined;
-    const known = viewType === 'genre' && seedArtist
+    const known = viewType === 'genre' && seedArtist && seedHasGraph
       ? new Set((await this.repo.similarTo(seedArtist.mbid, ent.nodeLimit)).map((r) => r.artist.mbid))
       : undefined;
 
@@ -94,6 +97,7 @@ export class LocalApi implements DiggrApi {
       randomSeed: newRandomSeed(),
       parentMapId: req.parentMapId ?? null,
       schemaVersion: this.repo.schemaVersion(),
+      seedHasGraph,
       ...(similar ? { similar } : {}),
       ...(members ? { members } : {}),
       ...(known ? { knownMbids: known } : {}),
@@ -158,4 +162,11 @@ export class LocalApi implements DiggrApi {
       }))
       .sort((a, b) => b.count - a.count);
   }
+
+  async sync(_pending: SyncPayload): Promise<{ accepted: number }> {
+    // ローカルモードにはサーバーが無いので、端末 DB が唯一の正のまま何もしない。
+    return { accepted: 0 };
+  }
+
+  async deleteAccount(): Promise<void> { /* ローカルモードでは対象がない */ }
 }

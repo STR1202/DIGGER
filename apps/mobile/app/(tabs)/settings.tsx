@@ -1,9 +1,22 @@
-import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { api } from '../../src/api';
+import { clearArtistsCache } from '../../src/db';
+import { forgetSession } from '../../src/services/auth';
 import { useAppStore } from '../../src/state/store';
 import { SERVICES, SERVICE_KEYS } from '../../src/services/links';
+import { purchases } from '../../src/services/purchases';
 import { color } from '../../src/theme/tokens';
+
+// legal/README.md の手順でホスティングした後、実 URL に置き換える（RI-02）。
+const LEGAL_BASE_URL = process.env['EXPO_PUBLIC_LEGAL_BASE_URL'] ?? 'https://diggr.app/legal';
+
+const SUBSCRIPTION_MANAGEMENT_URL = Platform.select({
+  ios: 'https://apps.apple.com/account/subscriptions',
+  android: 'https://play.google.com/store/account/subscriptions',
+  default: 'https://apps.apple.com/account/subscriptions',
+});
 
 /** SC-12 設定。データクレジットは法的義務ではないが、必ず載せる。 */
 export default function SettingsScreen(): React.ReactElement {
@@ -11,12 +24,39 @@ export default function SettingsScreen(): React.ReactElement {
   const prefs = useAppStore((s) => s.prefs);
   const setPref = useAppStore((s) => s.setPref);
   const entitlement = useAppStore((s) => s.entitlement);
+  const setEntitlement = useAppStore((s) => s.setEntitlement);
   const wipeAll = useAppStore((s) => s.wipeAll);
   const clearHistory = useAppStore((s) => s.clearHistory);
+  const [restoring, setRestoring] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const planName = entitlement.plan === 'free'
     ? 'Free'
     : entitlement.plan === 'pro_yearly' ? 'DIGGR Pro（年額）' : 'DIGGR Pro（月額）';
+
+  const restore = async (): Promise<void> => {
+    setRestoring(true);
+    try {
+      const e = await purchases.restore();
+      setEntitlement(e);
+      Alert.alert(e.plan === 'free' ? '復元する購入が見つかりませんでした' : '購入を復元しました');
+    } catch {
+      Alert.alert('復元に失敗しました', 'ネットワーク接続を確認してもう一度お試しください。');
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const deleteAccount = async (): Promise<void> => {
+    setDeleting(true);
+    try {
+      await api.deleteAccount().catch(() => undefined);
+      wipeAll();
+      await forgetSession();
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}>
@@ -24,8 +64,12 @@ export default function SettingsScreen(): React.ReactElement {
 
       <Section label="プラン">
         <Row label="現在のプラン" value={planName} />
-        <Row label="サブスクリプションの管理" value="ストアへ ›" />
-        <Row label="購入を復元" value="›" />
+        <Pressable onPress={() => void Linking.openURL(SUBSCRIPTION_MANAGEMENT_URL)}>
+          <Row label="サブスクリプションの管理" value="ストアへ ›" />
+        </Pressable>
+        <Pressable onPress={() => void restore()} disabled={restoring}>
+          <Row label="購入を復元" value={restoring ? '…' : '›'} />
+        </Pressable>
       </Section>
 
       <Section label="音楽アプリ">
@@ -55,19 +99,46 @@ export default function SettingsScreen(): React.ReactElement {
       </Section>
 
       <Section label="データ">
-        <Pressable onPress={clearHistory}><Row label="履歴をすべて削除" value="" /></Pressable>
+        <Pressable
+          onPress={() => Alert.alert(
+            '端末キャッシュの削除',
+            '地図の見え方は変わりません。次に開くときだけ、少し時間がかかります。',
+            [{ text: 'キャンセル', style: 'cancel' }, { text: '削除する', onPress: () => void clearArtistsCache() }],
+          )}
+        >
+          <Row label="端末キャッシュの削除" value="" />
+        </Pressable>
+        <Pressable
+          onPress={() => Alert.alert(
+            '履歴をすべて削除',
+            '保存（ブックマーク）したものは残ります。取り消せません。',
+            [{ text: 'キャンセル', style: 'cancel' }, { text: '削除する', style: 'destructive', onPress: clearHistory }],
+          )}
+        >
+          <Row label="履歴をすべて削除" value="" />
+        </Pressable>
         <Pressable
           onPress={() => Alert.alert(
             'アカウントと全データを削除',
             '履歴・ブックマーク・購入に紐づく権利情報をすべて削除します。取り消せません。',
-            [{ text: 'キャンセル', style: 'cancel' }, { text: '削除する', style: 'destructive', onPress: wipeAll }],
+            [
+              { text: 'キャンセル', style: 'cancel' },
+              { text: '削除する', style: 'destructive', onPress: () => void deleteAccount() },
+            ],
           )}
         >
-          <Row label="アカウントと全データの削除" value="" danger />
+          <Row label="アカウントと全データの削除" value={deleting ? '…' : ''} danger />
         </Pressable>
+        {deleting ? <ActivityIndicator color={color.error} style={{ marginTop: 8 }} /> : null}
       </Section>
 
       <Section label="情報">
+        <Pressable onPress={() => void Linking.openURL(`${LEGAL_BASE_URL}/terms.html`)}>
+          <Row label="利用規約" value="›" />
+        </Pressable>
+        <Pressable onPress={() => void Linking.openURL(`${LEGAL_BASE_URL}/privacy-policy.html`)}>
+          <Row label="プライバシーポリシー" value="›" />
+        </Pressable>
         <Text style={styles.credits}>
           {'このアプリの音楽データは、以下の\nパブリックドメイン（CC0）データセットに\n基づいています。\n\n  MusicBrainz\n  ListenBrainz\n  Discogs\n  Wikidata\n\nデータを公開している各コミュニティに\n感謝します。'}
         </Text>

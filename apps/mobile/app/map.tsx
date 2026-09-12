@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
@@ -13,13 +13,15 @@ import { GraphLabels } from '../src/graph/GraphLabels';
 import { useGraphView } from '../src/graph/useGraphView';
 import { Button } from '../src/components/Button';
 import { ViewTypeSwitch } from '../src/components/ViewTypeSwitch';
-import { ArtistSheet, FilterSheet, GenrePanel, Paywall } from '../src/sheets';
+import { ArtistSheet, FilterSheet, GenrePanel, Paywall, ShareSheet } from '../src/sheets';
 import { useAppStore } from '../src/state/store';
 import { api } from '../src/api';
 import { categoryOf, facetsOf } from '../src/data/genres';
 import { color, motion, shadow } from '../src/theme/tokens';
 import { openInService, type ServiceKey } from '../src/services/links';
 import { purchases } from '../src/services/purchases';
+import { useRewardedAd } from '../src/services/reward';
+import { captureGraphImage, saveImageToLibrary, shareImage } from '../src/services/shareImage';
 
 /** ラベル幅の概算（半角 6.4px / 全角 11px @11px）。実測は不要で、離す距離が決まればよい。 */
 const measureLabel = (t: string): number =>
@@ -45,6 +47,25 @@ export default function MapScreen(): React.ReactElement | null {
   const [showGenre, setShowGenre] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [shareUri, setShareUri] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const rewardedAd = useRewardedAd();
+  const graphRef = useRef<View>(null);
+
+  const openShare = useCallback(() => {
+    setMenuOpen(false);
+    setShowShare(true);
+    setShareUri(null);
+    setShareLoading(true);
+    // シートのアニメーションが割り込まないよう、次のフレームでキャプチャする
+    requestAnimationFrame(() => {
+      void captureGraphImage(graphRef)
+        .then(setShareUri)
+        .catch(() => setShareUri(null))
+        .finally(() => setShareLoading(false));
+    });
+  }, []);
 
   const canvasHeight = height;
   const layout = useMemo(() => {
@@ -176,7 +197,7 @@ export default function MapScreen(): React.ReactElement | null {
 
   const onListen = useCallback(async (service: ServiceKey) => {
     if (!sheetNode) return;
-    store().markListened(sheetNode.mbid);
+    store().markListened(sheetNode.mbid, service);
     void api.markListened(sheetNode.mbid);
     setSheetNode(null);
     await openInService(service, sheetNode.name);
@@ -200,7 +221,7 @@ export default function MapScreen(): React.ReactElement | null {
   return (
     <View style={styles.root}>
       <GestureDetector gesture={view.gesture}>
-        <View style={StyleSheet.absoluteFill}>
+        <View ref={graphRef} collapsable={false} style={StyleSheet.absoluteFill}>
           <GraphCanvas
             map={map} layout={layout} revealed={revealed}
             width={width} height={canvasHeight}
@@ -241,7 +262,13 @@ export default function MapScreen(): React.ReactElement | null {
             <Text style={styles.icon}>⋮</Text>
           </Pressable>
         </View>
-        <ViewTypeSwitch value={map.viewType} onChange={switchView} hidden={map.seedType === 'genre'} />
+        <ViewTypeSwitch
+          value={map.viewType}
+          onChange={switchView}
+          hidden={map.seedType === 'genre'}
+          relatedLocked={map.seedType === 'artist' && !map.seedHasGraph}
+          lockedCaption="この人の関連グラフはまだありません。ジャンル地図で探せます"
+        />
         {menuOpen ? (
           <View style={[styles.menu, shadow.panel]}>
             <Pressable onPress={() => { setMenuOpen(false); void reroll(); }} disabled={!map.canReroll}>
@@ -251,6 +278,9 @@ export default function MapScreen(): React.ReactElement | null {
             </Pressable>
             <Pressable onPress={() => { setMenuOpen(false); setShowFilter(true); }}>
               <Text style={styles.menuItem}>絞り込み</Text>
+            </Pressable>
+            <Pressable onPress={openShare}>
+              <Text style={styles.menuItem}>🖼 画像で共有</Text>
             </Pressable>
           </View>
         ) : null}
@@ -285,11 +315,11 @@ export default function MapScreen(): React.ReactElement | null {
       <ArtistSheet
         node={sheetNode} map={map} service={prefs.service}
         listened={sheetNode ? listenedSet.has(sheetNode.mbid) : false}
-        bookmarked={sheetNode ? bookmarks.includes(sheetNode.mbid) : false}
+        bookmarked={sheetNode ? bookmarks.some((b) => b.targetType === 'artist' && b.targetKey === sheetNode.mbid) : false}
         onClose={() => setSheetNode(null)}
         onDig={(mbid) => { void dig(mbid); }}
         onListen={(s) => { void onListen(s); }}
-        onBookmark={() => { if (sheetNode) store().toggleBookmark(sheetNode.mbid); }}
+        onBookmark={() => { if (sheetNode) store().toggleBookmark('artist', sheetNode.mbid, sheetNode.name); }}
       />
       <FilterSheet
         open={showFilter} filters={filters} countries={countries}
@@ -320,7 +350,36 @@ export default function MapScreen(): React.ReactElement | null {
             void api.getMap(map.id).then((m) => store().openMap(m, revealed));
           });
         }}
-        onWatchAd={undefined}
+        onRestore={() => {
+          void purchases.restore().then((e) => {
+            store().setEntitlement(e);
+            if (e.plan !== 'free') {
+              setShowPaywall(false);
+              void api.getMap(map.id).then((m) => store().openMap(m, revealed));
+            }
+          });
+        }}
+        onWatchAd={entitlement.plan === 'free' ? () => {
+          void rewardedAd.show().then((result) => {
+            if (result !== 'earned') return;
+            void api.claimReward().then((e) => {
+              store().setEntitlement(e);
+              setShowPaywall(false);
+              void api.getMap(map.id).then((m) => store().openMap(m, revealed));
+            });
+          });
+        } : undefined}
+      />
+      <ShareSheet
+        open={showShare} imageUri={shareUri} loading={shareLoading}
+        onClose={() => setShowShare(false)}
+        onShare={() => { if (shareUri) void shareImage(shareUri).catch(() => undefined); }}
+        onSave={() => {
+          if (!shareUri) return;
+          void saveImageToLibrary(shareUri).then((ok) => {
+            if (!ok) Alert.alert('保存できませんでした', '写真ライブラリへのアクセスが許可されていません。');
+          });
+        }}
       />
     </View>
   );
@@ -331,7 +390,7 @@ const styles = StyleSheet.create({
   chrome: { position: 'absolute', left: 10, right: 10, gap: 6 },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8,
-    borderRadius: 20, backgroundColor: 'rgba(18,18,26,0.94)',
+    borderRadius: 20, backgroundColor: color.bgChrome,
     borderWidth: 1, borderColor: color.hairline,
   },
   icon: { color: color.textSecondary, fontSize: 22, paddingHorizontal: 8 },

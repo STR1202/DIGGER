@@ -4,6 +4,8 @@ export const color = {
   bgBase: '#0A0A0F',
   bgSurface: '#14141C',
   bgElevated: '#1E1E29',
+  /** 上部クローム。地図に文字が食われないよう半透明で敷く（画面設計書 §4.1） */
+  bgChrome: 'rgba(18,18,26,0.94)',
   textPrimary: '#F5F5F7',
   textSecondary: '#8E8E9A',
   accent: '#7C5CFF',
@@ -12,6 +14,8 @@ export const color = {
   tierRandom: '#9A9AB0',
   tierBoundary: '#2A2A38',
   locked: '#3A3A48',
+  /** 閲覧済みチェックの白丸（FR-31）。textPrimary とは別に純白で固定する */
+  stateChecked: '#FFFFFF',
   success: '#3DD68C',
   error: '#FF6B6B',
   hairline: '#23232F',

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { api, type SearchHit } from '../../src/api';
+import { AdBanner } from '../../src/components/AdBanner';
 import { useAppStore, type MapRecord } from '../../src/state/store';
 import { color } from '../../src/theme/tokens';
 
@@ -136,7 +137,7 @@ export default function SearchScreen(): React.ReactElement {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.rowLabel}>{h.seedName}</Text>
                       <Text style={styles.caption}>
-                        {h.viewType === 'genre' ? '同じジャンル' : `確定 ${h.coreCount}`} · {h.nodeMbids.length} 件
+                        {h.viewType === 'genre' ? '同じジャンル' : `確定 ${h.coreCount}`} · {h.nodeUids.length} 件
                       </Text>
                     </View>
                   </Pressable>
@@ -155,6 +156,7 @@ export default function SearchScreen(): React.ReactElement {
           )}
         />
       )}
+      <AdBanner />
     </View>
   );
 }

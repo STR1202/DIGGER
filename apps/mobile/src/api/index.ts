@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { HttpApi } from './http';
 import { LocalApi } from './local';
+import { ensureSession } from '../services/auth';
 import type { DiggrApi } from './types';
 
 export * from './types';
@@ -12,9 +13,12 @@ const baseUrl =
   (Constants.expoConfig?.extra?.['apiBaseUrl'] as string | undefined) ??
   'https://api.diggr.app/v1';
 
-/** 匿名 JWT。実装では初回起動時に POST /auth/anonymous して SecureStore に保存する。 */
+/** 匿名 JWT（FR-14）。初回は `POST /auth/anonymous` を叩き、以後は SecureStore の値を使い回す。 */
 async function getToken(): Promise<string> {
-  return process.env['EXPO_PUBLIC_DEV_TOKEN'] ?? 'anonymous-dev-token';
+  const dev = process.env['EXPO_PUBLIC_DEV_TOKEN'];
+  if (dev) return dev;
+  const session = await ensureSession(baseUrl);
+  return session.token;
 }
 
 export const api: DiggrApi = mode === 'http' ? new HttpApi(baseUrl, getToken) : new LocalApi();

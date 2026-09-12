@@ -175,7 +175,7 @@ export function GraphCanvas(props: GraphCanvasProps): React.ReactElement {
               {checked.has(n.mbid) ? (
                 <Group>
                   <Circle cx={n.x + n.r * 0.86 + 2.4} cy={n.y - n.r * 0.86 - 2.4} r={5}
-                    color={listened.has(n.mbid) ? color.success : color.textPrimary} />
+                    color={listened.has(n.mbid) ? color.success : color.stateChecked} />
                   <Circle cx={n.x + n.r * 0.86 + 2.4} cy={n.y - n.r * 0.86 - 2.4} r={5}
                     style="stroke" strokeWidth={1.2} color={color.bgBase} />
                 </Group>

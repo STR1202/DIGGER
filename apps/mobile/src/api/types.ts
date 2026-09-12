@@ -25,6 +25,12 @@ export interface GenreFacet {
   readonly hasChildren: boolean;
 }
 
+export interface SyncPayload {
+  readonly bookmarks: { targetType: 'artist' | 'genre' | 'map'; targetKey: string; targetName: string; createdAt: string }[];
+  readonly checked: { uid: string; checkedAt: string }[];
+  readonly listened: { uid: string; service: string; listenedAt: string }[];
+}
+
 /** アプリから見た API。HTTP 実装とローカル実装の両方がこれを満たす。 */
 export interface DiggrApi {
   search(query: string): Promise<SearchHit[]>;
@@ -37,4 +43,8 @@ export interface DiggrApi {
   /** 外部音楽アプリへ遷移したアーティストの記録（FR-23） */
   markListened(mbid: string): Promise<void>;
   genreFacets(mapId: string): Promise<GenreFacet[]>;
+  /** 端末に溜まった未同期の操作をサーバーへ送る（`POST /me/sync`、技術選定書 §3.5.3） */
+  sync(pending: SyncPayload): Promise<{ accepted: number }>;
+  /** アカウントと全データの削除（`DELETE /me`） */
+  deleteAccount(): Promise<void>;
 }
